@@ -1,0 +1,67 @@
+# .NET
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.snk
+*.dll
+*.exe
+*.pdb
+*.ico
+*.dll.config
+*.cache
+*.log
+.vs/
+*.DotSettings.user
+[Bb]undle/
+[Pp]ublish/
+
+# Build outputs
+dist/
+dist.zip
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Python service specific
+python-service/__pycache__/
+python-service/venv/
+python-service/env/
+python-service/*.pyc
+python-service/*.pyo
+
+# IDE
+.vscode/
+.vs/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+Photo/
+*.bak
+*.tmp

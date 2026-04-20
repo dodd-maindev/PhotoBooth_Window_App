@@ -1,0 +1,174 @@
+﻿python.exe : 169 INFO: PyInstaller: 6.19.0, contrib hooks: 2026.4
+At line:1 char:1
++ & "c:\New folder\photobooth\.venv\Scripts\python.exe" -m PyInstaller  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (169 INFO: PyIns...b hooks: 2026.4:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+169 INFO: Python: 3.10.0
+179 INFO: Platform: Windows-10-10.0.22631-SP0
+179 INFO: Python environment: C:\New folder\photobooth\.venv
+3916 INFO: Module search paths (PYTHONPATH):
+['C:\\New folder\\photobooth',
+ 'C:\\Users\\ASUS\\AppData\\Local\\Programs\\Python\\Python310\\python310.zip',
+ 'C:\\Users\\ASUS\\AppData\\Local\\Programs\\Python\\Python310\\DLLs',
+ 'C:\\Users\\ASUS\\AppData\\Local\\Programs\\Python\\Python310\\lib',
+ 'C:\\Users\\ASUS\\AppData\\Local\\Programs\\Python\\Python310',
+ 'C:\\New folder\\photobooth\\.venv',
+ 'C:\\New folder\\photobooth\\.venv\\lib\\site-packages',
+ 'C:\\New folder\\photobooth\\python-service',
+ 'C:\\New folder\\photobooth']
+4635 INFO: Appending 'binaries' from .spec
+4635 INFO: Appending 'datas' from .spec
+4684 INFO: checking Analysis
+4684 INFO: Building Analysis because Analysis-00.toc is non existent
+4684 INFO: Looking for Python shared library...
+4685 INFO: Using Python shared library: C:\Users\ASUS\AppData\Local\Programs\Python\Python310\python310.dll
+4685 INFO: Running Analysis Analysis-00.toc
+4685 INFO: Target bytecode optimization level: 0
+4685 INFO: Initializing module dependency graph...
+4687 INFO: Initializing module graph hook caches...
+4720 INFO: Analyzing modules for base_library.zip ...
+5822 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+5893 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+7321 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+8583 INFO: Caching module dependency graph...
+8641 INFO: Analyzing C:\New folder\photobooth\python-service\_entry.py
+8664 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+8791 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+8958 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+8975 INFO: Processing standard module hook 'hook-uvicorn.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+10162 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+10164 INFO: SetuptoolsInfo: initializing cached setuptools info...
+10997 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+11056 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+11533 INFO: Processing standard module hook 'hook-websockets.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12317 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+13641 INFO: Processing standard module hook 'hook-pydantic.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14647 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14666 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+15953 INFO: Processing standard module hook 'hook-cv2.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16657 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+19022 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\New 
+folder\\photobooth\\.venv\\lib\\site-packages\\PyInstaller\\hooks'
+Traceback (most recent call last):
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\__main__.py", line 321, in <module>
+    run()
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\__main__.py", line 215, in run
+    run_build(pyi_config, spec_file, **vars(args))
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\__main__.py", line 70, in run_build
+    PyInstaller.building.build_main.main(pyi_config, spec_file, **kwargs)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\building\build_main.py", line 1275, in main
+    build(specfile, distpath, workpath, clean_build)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\building\build_main.py", line 1213, in build
+    exec(code, spec_namespace)
+  File ".\python-service\photobooth_service.spec", line 56, in <module>
+    a = Analysis(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\building\build_main.py", line 584, in __init__
+    self.__postinit__()
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\building\datastruct.py", line 184, in __postinit__
+    self.assemble()
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\building\build_main.py", line 716, in assemble
+    program_scripts.append(self.graph.add_script(script))
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 283, in add_script
+    self._top_script_node = super().add_script(pathname)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1194, in 
+add_script
+    self._process_imports(n)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2654, in 
+_process_imports
+    target_modules = self._safe_import_hook(*import_info, **kwargs)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 477, in 
+_safe_import_hook
+    ret_modules = super()._safe_import_hook(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2103, in 
+_safe_import_hook
+    target_modules = self.import_hook(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1279, in 
+import_hook
+    submodule = self._safe_import_module(head, mname, submodule)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 539, in 
+_safe_import_module
+    return super()._safe_import_module(module_basename, module_name, parent_package)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1826, in 
+_safe_import_module
+    self._process_imports(n)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2654, in 
+_process_imports
+    target_modules = self._safe_import_hook(*import_info, **kwargs)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 477, in 
+_safe_import_hook
+    ret_modules = super()._safe_import_hook(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2103, in 
+_safe_import_hook
+    target_modules = self.import_hook(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1266, in 
+import_hook
+    target_package, target_module_partname = self._find_head_package(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1445, in 
+_find_head_package
+    target_package = self._safe_import_module(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 539, in 
+_safe_import_module
+    return super()._safe_import_module(module_basename, module_name, parent_package)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1826, in 
+_safe_import_module
+    self._process_imports(n)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2654, in 
+_process_imports
+    target_modules = self._safe_import_hook(*import_info, **kwargs)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 477, in 
+_safe_import_hook
+    ret_modules = super()._safe_import_hook(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2312, in 
+_safe_import_hook
+    self.import_hook(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1305, in 
+import_hook
+    for target_submodule in self._import_importable_package_submodules(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1554, in 
+_import_importable_package_submodules
+    submodule = self._safe_import_module(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\depend\analysis.py", line 539, in 
+_safe_import_module
+    return super()._safe_import_module(module_basename, module_name, parent_package)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 1825, in 
+_safe_import_module
+    n = self._scan_code(module, co, co_ast)
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2441, in 
+_scan_code
+    self._scan_bytecode(
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\modulegraph.py", line 2545, in 
+_scan_bytecode
+    for inst in util.iterate_instructions(module_code_object):
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\util.py", line 13, in 
+iterate_instructions
+    yield from (i for i in dis.get_instructions(code_object) if i.opname != "EXTENDED_ARG")
+  File "C:\New folder\photobooth\.venv\lib\site-packages\PyInstaller\lib\modulegraph\util.py", line 13, in <genexpr>
+    yield from (i for i in dis.get_instructions(code_object) if i.opname != "EXTENDED_ARG")
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python310\lib\dis.py", line 338, in _get_instructions_bytes
+    argval, argrepr = _get_const_info(arg, constants)
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python310\lib\dis.py", line 292, in _get_const_info
+    argval = const_list[const_index]
+IndexError: tuple index out of range
