@@ -263,9 +263,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
             UpdateStatus($"Đã nhận ảnh mới: {Path.GetFileName(args.CopiedPath)}");
+            CurrentCapturedImage = ImageSourceFactory.LoadFromFile(args.CopiedPath);
+            CurrentProcessedImage = CurrentCapturedImage;
+            AddRecentProcessedImage(args.CopiedPath);
         });
-
-        await _processingQueue.Writer.WriteAsync(args, _cts.Token).ConfigureAwait(false);
     }
 
     private async Task ProcessQueueAsync()
@@ -365,11 +366,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 CurrentCapturedImage = ImageSourceFactory.LoadFromFile(capturedPath);
                 CurrentProcessedImage = CurrentCapturedImage;
                 StatusMessage = $"Đã chụp và lưu ảnh: {Path.GetFileName(capturedPath)}";
+                AddRecentProcessedImage(capturedPath);
             });
 
             await _logger.InfoAsync($"Capture command finished. Saved={capturedPath}").ConfigureAwait(false);
-
-            await _processingQueue.Writer.WriteAsync(new CameraPhotoReadyEventArgs(capturedPath, capturedPath), _cts.Token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
