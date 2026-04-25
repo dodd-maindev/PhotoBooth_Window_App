@@ -22,13 +22,19 @@ public sealed class ImageProcessingClient : IDisposable
         };
     }
 
-    public async Task<string> ProcessAsync(string imagePath, string filterType, string outputFolder, CancellationToken cancellationToken)
+    /// <summary>
+    /// Sends the image to the Python API for processing and writes the result
+    /// to <paramref name="outputPath"/>.
+    /// </summary>
+    public async Task<string> ProcessAsync(
+        string imagePath,
+        string filterType,
+        string outputFolder,
+        CancellationToken cancellationToken)
     {
+        var fileName = $"{Path.GetFileNameWithoutExtension(imagePath)}_{filterType}{Path.GetExtension(imagePath)}";
+        var outputPath = Path.Combine(outputFolder, fileName);
         Directory.CreateDirectory(outputFolder);
-
-        var fileName = Path.GetFileNameWithoutExtension(imagePath);
-        var timestamp = DateTime.Now.ToString("yyyyMMddHHmmssfff");
-        var outputPath = Path.Combine(outputFolder, $"{fileName}-{filterType}-{timestamp}.png");
 
         Exception? lastException = null;
 
@@ -37,7 +43,7 @@ public sealed class ImageProcessingClient : IDisposable
             try
             {
                 await _logger.DebugAsync($"Processing attempt {attempt}: {Path.GetFileName(imagePath)} -> {Path.GetFileName(outputPath)}").ConfigureAwait(false);
-                
+
                 using var content = new MultipartFormDataContent();
                 await using var fileStream = File.Open(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 var fileContent = new StreamContent(fileStream);

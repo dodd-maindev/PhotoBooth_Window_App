@@ -34,11 +34,14 @@ public partial class App : Application
             _settings = AppSettings.Load(AppContext.BaseDirectory);
 
             _pythonServiceHost = new PythonServiceHost();
-            TraceBoot("Starting embedded Python service...");
-            await _pythonServiceHost.StartAsync();
-            TraceBoot("Python service ready");
+            TraceBoot("Starting embedded Python service in background...");
 
-            RunSessionLoop();
+            // Start Python service concurrently so the UI shows immediately.
+            // The session loop will await it only when it's actually needed
+            // (right before opening the MainWindow).
+            var serviceStartTask = _pythonServiceHost.StartAsync();
+
+            RunSessionLoop(serviceStartTask);
         }
         catch (Exception ex)
         {
@@ -58,7 +61,12 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private void RunSessionLoop()
+    /// <summary>
+    /// Main session loop. Accepts the Python service warm-up task so it can
+    /// await readiness right before the heavy MainWindow is opened, not before
+    /// the lightweight customer-input dialog.
+    /// </summary>
+    private async void RunSessionLoop(Task serviceStartTask)
     {
         while (true)
         {
@@ -74,9 +82,32 @@ public partial class App : Application
                 return;
             }
 
+            // Await the service here — it has been warming up while the user
+            // was typing their name, so this await is usually instant.
+            if (!serviceStartTask.IsCompleted)
+            {
+                TraceBoot("Python service still starting — awaiting...");
+            }
+
+            try
+            {
+                await serviceStartTask.ConfigureAwait(true); // true = resume on UI thread
+                TraceBoot("Python service ready");
+            }
+            catch (Exception ex)
+            {
+                TraceBoot($"Python service failed: {ex.Message}");
+                MessageBox.Show(
+                    $"Không thể khởi động Python service:\n{ex.Message}",
+                    "Lỗi khởi động",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                // Continue anyway — image processing simply won't work.
+            }
+
             TraceBoot($"Session loop: customer '{dialog.CustomerName}' confirmed, opening MainWindow");
 
-            var mainWindow = new MainWindow(dialog.CustomerName, _settings!);
+            var mainWindow = new MainWindow(dialog.CustomerName, dialog.Settings);
 
             void OnLoaded(object? s, RoutedEventArgs args)
             {
@@ -85,13 +116,10 @@ public partial class App : Application
             }
             mainWindow.Loaded += OnLoaded;
 
-            int closeReason = 0;
-
             void OnEndSession(object? s, EventArgs args)
             {
                 mainWindow.EndSessionRequested -= OnEndSession;
                 TraceBoot("Session loop: EndSession received, closing MainWindow");
-                closeReason = 1;
                 mainWindow.Close();
             }
             mainWindow.EndSessionRequested += OnEndSession;
@@ -99,21 +127,14 @@ public partial class App : Application
             void OnMainWindowClosed(object? s, EventArgs args)
             {
                 mainWindow.Closed -= OnMainWindowClosed;
-                TraceBoot("Session loop: MainWindow closed via X button, exiting app");
-                if (closeReason == 0)
-                    closeReason = 2;
+                TraceBoot("Session loop: MainWindow closed via X button, looping back to dialog");
+                mainWindow.Close();
             }
             mainWindow.Closed += OnMainWindowClosed;
 
             mainWindow.ShowDialog();
 
             TraceBoot("Session loop: MainWindow closed, restarting session loop");
-
-            if (closeReason == 2)
-            {
-                Shutdown(0);
-                return;
-            }
         }
     }
 

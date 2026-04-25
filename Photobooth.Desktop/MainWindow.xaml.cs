@@ -15,20 +15,11 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        var rootPhotoFolder = @"C:\photobooth\Photo";
-        var sessionService = new CustomerSessionService(rootPhotoFolder);
-        var sessionPath = sessionService.CreateSessionFolder(customerName);
-        var (watchFolder, processingFolder, outputFolder) = sessionService.GetSessionPaths();
-
-        ViewModel = new MainViewModel(settings, sessionService, customerName, watchFolder, processingFolder, outputFolder);
+        ViewModel = new MainViewModel();
         DataContext = ViewModel;
 
         Loaded += MainWindow_Loaded;
         Closing += (_, _) => ViewModel?.Dispose();
-        ViewModel.EndSessionRequested += (_, _) =>
-        {
-            EndSessionRequested?.Invoke(this, EventArgs.Empty);
-        };
     }
 
     public event EventHandler? EndSessionRequested;

@@ -1,15 +1,18 @@
 using System.Windows;
 using System.Windows.Input;
+using Photobooth.Desktop.Models;
 
 namespace Photobooth.Desktop;
 
 public partial class CustomerInputDialog : Window
 {
     public string? CustomerName { get; private set; }
+    public AppSettings Settings { get; private set; }
 
     public CustomerInputDialog()
     {
         InitializeComponent();
+        Settings = AppSettings.Load(AppContext.BaseDirectory);
         CustomerNameTextBox.Focus();
     }
 
@@ -32,6 +35,18 @@ public partial class CustomerInputDialog : Window
         CustomerName = name;
         DialogResult = true;
         Close();
+    }
+
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SettingsDialog(Settings);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+
+        if (dialog.SettingsSaved)
+        {
+            Settings = AppSettings.Load(AppContext.BaseDirectory);
+        }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)

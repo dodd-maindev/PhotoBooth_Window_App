@@ -233,7 +233,7 @@
                     </Grid.RowDefinitions>
                     <StackPanel Margin="0,0,0,10">
                         <TextBlock Text="Live camera preview" FontSize="16" FontWeight="SemiBold" />
-                        <TextBlock Text="Nguồn hình trực tiếp từ Canon EOS Webcam Utility" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="Xem trước trực tiếp từ máy ảnh" Style="{StaticResource CaptionTextStyle}" />
                     </StackPanel>
                     <Border Grid.Row="1" Background="#220B0D" CornerRadius="0" BorderBrush="#7A4730" BorderThickness="1" ClipToBounds="True">
                         <Image Source="{Binding CurrentCameraImage}" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -256,7 +256,7 @@
                             <Image Source="{Binding CurrentProcessedImage}" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" />
 
                             <Grid x:Name="FilterLoadingOverlay"
-                                  Visibility="{Binding IsFilterChanging, Converter={StaticResource BoolToVisibilityConverter}}"
+                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"
                                   Background="#CC000000">
                                 <Grid.Triggers>
                                     <EventTrigger RoutedEvent="FrameworkElement.Loaded">

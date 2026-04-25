@@ -94,11 +94,36 @@ public sealed class PythonServiceHost : IDisposable
         Directory.CreateDirectory(_tempDirectory);
         var destPath = Path.Combine(_tempDirectory, "python_service.exe");
 
-        using var fileStream = File.Create(destPath);
-        stream.CopyTo(fileStream);
+        if (File.Exists(destPath))
+        {
+            KillExistingProcess(destPath);
+            try { File.Delete(destPath); } catch { }
+        }
+
+        using (var fileStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.Read, 4096, FileOptions.None))
+        {
+            stream.CopyTo(fileStream);
+        }
 
         Console.WriteLine($"[PythonServiceHost] Extracted exe to: {destPath}");
         return destPath;
+    }
+
+    private static void KillExistingProcess(string exePath)
+    {
+        foreach (var proc in Process.GetProcesses())
+        {
+            try
+            {
+                if (proc.MainModule?.FileName?.Equals(exePath, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    proc.Kill(entireProcessTree: true);
+                    proc.WaitForExit(3000);
+                }
+            }
+            catch { }
+            finally { proc.Dispose(); }
+        }
     }
 
     /// <summary>Starts python_service.exe as a hidden background process.</summary>
@@ -153,7 +178,10 @@ public sealed class PythonServiceHost : IDisposable
         try
         {
             if (Directory.Exists(_tempDirectory))
-                Directory.Delete(_tempDirectory, recursive: true);
+            {
+                KillExistingProcess(Path.Combine(_tempDirectory, "python_service.exe"));
+                try { Directory.Delete(_tempDirectory, recursive: true); } catch { }
+            }
         }
         catch (Exception ex)
         {

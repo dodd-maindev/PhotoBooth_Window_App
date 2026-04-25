@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Photobooth.Desktop.Models;
 using Photobooth.Desktop.Services;
+using Photobooth.Desktop.Services.Camera;
 
 namespace Photobooth.Desktop.ViewModels;
 
@@ -13,7 +14,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly FileLogger _logger;
-    private readonly CameraPreviewService _cameraPreview;
+    private readonly ICameraService _cameraService;
     private readonly ImageProcessingClient _imageClient;
     private readonly CameraFolderWatcher _watcher;
     private readonly PrintService _printService;
@@ -22,10 +23,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private readonly Task _queueWorker;
     private readonly HashSet<string> _recentProcessedPaths = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _processingLock = new(1, 1);
-    private readonly object _filterLock = new();
-    private readonly string _watchFolder;
-    private readonly string _processingFolder;
-    private readonly string _outputFolder;
     private bool _isInitialized;
 
     private ImageSource? _currentCameraImage;
@@ -36,27 +33,30 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string _lastErrorMessage = string.Empty;
     private string _cameraStatusMessage = "Đang chờ camera...";
     private bool _isBusy;
-    private bool _isFilterChanging;
     private FilterOption? _selectedFilter;
 
-    public string CustomerName { get; }
-
-    public MainViewModel(AppSettings settings, CustomerSessionService sessionService, string customerName, string watchFolder, string processingFolder, string outputFolder)
+    public MainViewModel()
     {
-        _settings = settings;
-        CustomerName = customerName;
-        _watchFolder = watchFolder;
-        _processingFolder = processingFolder;
-        _outputFolder = outputFolder;
-
+        _settings = AppSettings.Load(AppContext.BaseDirectory);
         EnsureFolders();
 
         _logger = new FileLogger(_settings.LogFolder);
-        _cameraPreview = new CameraPreviewService(_logger);
-        _cameraPreview.FrameAvailable += HandleCameraFrame;
+        
+        if (_settings.CameraType == CameraType.Fuji)
+        {
+            _cameraService = new FujiCameraService(_logger, _settings.FujiSaveFolder, _settings.FujiPreferredCameraName, _settings.FujiWebcamDeviceIndex);
+        }
+        else
+        {
+            _cameraService = new CanonCameraService(_logger, _settings.CanonPreferredCameraName, _settings.CanonCameraDeviceIndex);
+        }
+        
+        _cameraService.FrameAvailable += HandleCameraFrame;
+        _cameraService.PhotoCaptured += async path => await HandlePhotoReadyAsync(new CameraPhotoReadyEventArgs(path, path));
+        
         _imageClient = new ImageProcessingClient(_settings, _logger);
         _printService = new PrintService();
-        _watcher = new CameraFolderWatcher(_watchFolder, _processingFolder, _logger);
+        _watcher = new CameraFolderWatcher(_settings.WatchFolder, _settings.ProcessingFolder, _logger);
         _watcher.PhotoReady += HandlePhotoReadyAsync;
         _queueWorker = Task.Run(ProcessQueueAsync);
 
@@ -76,9 +76,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             if (parameter is FilterOption filter)
             {
                 _ = _logger.InfoAsync($"SelectFilterCommand triggered with filter: {filter.Key}");
+                var isSame = filter == _selectedFilter;
                 SelectedFilter = filter;
-
-                if (filter == _selectedFilter && !string.IsNullOrEmpty(_lastCapturedImagePath) && File.Exists(_lastCapturedImagePath))
+                
+                // If user selects the same filter again, still re-process
+                if (isSame && !string.IsNullOrEmpty(_lastCapturedImagePath) && File.Exists(_lastCapturedImagePath))
                 {
                     _ = _logger.InfoAsync($"Same filter selected again, re-processing: {_lastCapturedImagePath}");
                     _ = ReprocessImageWithFilterAsync();
@@ -90,7 +92,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         PrintFourCommand = new RelayCommand(_ => PrintFour());
         CaptureCommand = new AsyncRelayCommand(async _ => await CaptureCurrentFrameAsync().ConfigureAwait(false));
         ClearHistoryCommand = new RelayCommand(_ => ClearHistory());
-        EndSessionCommand = new RelayCommand(_ => EndSession());
     }
 
     public ObservableCollection<FilterOption> Filters { get; }
@@ -104,8 +105,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public ICommand CaptureCommand { get; }
 
     public ICommand ClearHistoryCommand { get; }
-
-    public ICommand EndSessionCommand { get; }
 
     public ImageSource? CurrentCameraImage
     {
@@ -149,12 +148,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _isBusy, value);
     }
 
-    public bool IsFilterChanging
-    {
-        get => _isFilterChanging;
-        private set => SetProperty(ref _isFilterChanging, value);
-    }
-
     public FilterOption? SelectedFilter
     {
         get => _selectedFilter;
@@ -164,69 +157,46 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             {
                 UpdateStatus($"Filter đang chọn: {value?.DisplayName}");
                 _ = _logger.InfoAsync($"Filter changed to: {value?.Key}");
-
-                if (!string.IsNullOrEmpty(_lastCapturedImagePath) && File.Exists(_lastCapturedImagePath))
+                
+                // Automatically re-process the last captured image with the new filter
+                if (!string.IsNullOrEmpty(_lastCapturedImagePath))
                 {
-                    _ = ReprocessImageWithFilterAsync();
+                    var exists = File.Exists(_lastCapturedImagePath);
+                    _ = _logger.InfoAsync($"Last captured image: {_lastCapturedImagePath} (exists={exists})");
+                    
+                    if (exists)
+                    {
+                        _ = _logger.InfoAsync($"Triggering ReprocessImageWithFilterAsync for: {_lastCapturedImagePath}");
+                        _ = ReprocessImageWithFilterAsync();
+                    }
+                    else
+                    {
+                        _ = _logger.WarnAsync($"Last captured image file not found: {_lastCapturedImagePath}");
+                    }
                 }
+                else
+                {
+                    _ = _logger.WarnAsync("No last captured image path available for re-processing");
+                }
+            }
+            else
+            {
+                _ = _logger.DebugAsync($"SelectedFilter set to same value: {value?.Key}, skipping re-process");
             }
         }
     }
 
     private async Task ReprocessImageWithFilterAsync()
     {
-        string? imagePath;
-        string filter;
-
-        lock (_filterLock)
+        var imagePath = _lastCapturedImagePath ?? "";
+        if (!string.IsNullOrEmpty(imagePath))
         {
-            imagePath = _lastCapturedImagePath;
-            filter = _selectedFilter?.Key ?? "beauty";
-        }
-
-        if (string.IsNullOrEmpty(imagePath))
-        {
-            return;
-        }
-
-        IsFilterChanging = true;
-        StatusMessage = $"Đang áp dụng filter '{filter}'...";
-
-        await _processingLock.WaitAsync(_cts.Token).ConfigureAwait(false);
-        try
-        {
-            var outputPath = await _imageClient.ProcessAsync(imagePath, filter, _outputFolder, _cts.Token).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                try
-                {
-                    CurrentProcessedImage = ImageSourceFactory.LoadFromFile(outputPath);
-                    StatusMessage = $"Đã áp dụng filter: {filter}";
-                }
-                catch (Exception ex)
-                {
-                    LastErrorMessage = ex.Message;
-                    StatusMessage = "Áp dụng filter thất bại.";
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            await _logger.ErrorAsync($"Filter reprocessing failed for {imagePath}", ex).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                LastErrorMessage = ex.Message;
-                StatusMessage = "Áp dụng filter thất bại.";
-            });
-        }
-        finally
-        {
-            _processingLock.Release();
-            await Application.Current.Dispatcher.InvokeAsync(() => IsFilterChanging = false);
+            // Queue it to avoid deadlocks with _processingLock
+            await _processingQueue.Writer.WriteAsync(new CameraPhotoReadyEventArgs(imagePath, imagePath), _cts.Token).ConfigureAwait(false);
         }
     }
 
-    public string SettingsSummary => $"Khách: {CustomerName}";
+    public string SettingsSummary => $"Watch: {_settings.WatchFolder} | API: {_settings.ApiBaseUrl}";
 
     public ObservableCollection<string> RecentProcessedImages { get; } = new();
 
@@ -238,22 +208,15 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         }
 
         _isInitialized = true;
-
-        try
-        {
-            await StartCameraPreviewAsync().ConfigureAwait(false);
-            _watcher.Start();
-            await _logger.InfoAsync("Photobooth desktop started.").ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            await _logger.ErrorAsync("InitializeAsync failed", ex).ConfigureAwait(false);
-        }
+        await StartCameraPreviewAsync().ConfigureAwait(false);
+        _watcher.Start();
+        await _logger.InfoAsync("Photobooth desktop started.").ConfigureAwait(false);
+        UpdateStatus("Đang theo dõi thư mục camera và live camera feed...");
     }
 
     private async Task StartCameraPreviewAsync()
     {
-        try
+        if (_settings.CameraType == CameraType.Canon)
         {
             var mode = CanonUtilityDetector.DetectMode();
             await _logger.InfoAsync($"Detected Canon connection mode: {mode}").ConfigureAwait(false);
@@ -266,35 +229,21 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     StatusMessage = "Tether mode đã bật. Nút Capture trong app sẽ không dùng trong mode này.";
                     RefreshCaptureCommandState();
                 });
-
                 return;
             }
-
-            var started = await _cameraPreview.StartAsync(_settings.PreferredCameraName, _settings.CameraDeviceIndex, _cts.Token).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                CameraStatusMessage = started
-                    ? _cameraPreview.LastStatusMessage
-                    : mode == CanonConnectionMode.None
-                        ? "Không phát hiện EOS Webcam Utility hoặc EOS Utility."
-                        : _cameraPreview.LastStatusMessage;
-                StatusMessage = started ? "Camera live view đã sẵn sàng." : $"Không mở được camera live view cho '{_settings.PreferredCameraName}'.";
-                RefreshCaptureCommandState();
-            });
-
-            if (!started)
-            {
-                await _logger.WarnAsync(_cameraPreview.LastStatusMessage).ConfigureAwait(false);
-            }
         }
-        catch (Exception ex)
+
+        var started = await _cameraService.StartAsync(_cts.Token).ConfigureAwait(false);
+        await Application.Current.Dispatcher.InvokeAsync(() =>
         {
-            await _logger.ErrorAsync("StartCameraPreviewAsync failed", ex).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                CameraStatusMessage = "Lỗi khởi tạo camera: " + ex.Message;
-                StatusMessage = "Camera không khả dụng. Vẫn có thể nhận ảnh từ thư mục watch.";
-            });
+            CameraStatusMessage = _cameraService.LastStatusMessage;
+            StatusMessage = started ? "Camera live view đã sẵn sàng." : "Không mở được camera live view.";
+            RefreshCaptureCommandState();
+        });
+
+        if (!started)
+        {
+            await _logger.WarnAsync(_cameraService.LastStatusMessage).ConfigureAwait(false);
         }
     }
 
@@ -303,7 +252,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Application.Current.Dispatcher.InvokeAsync(() =>
         {
             CurrentCameraImage = frame;
-            CameraStatusMessage = _cameraPreview.LastStatusMessage;
+            CameraStatusMessage = _cameraService.LastStatusMessage;
             RefreshCaptureCommandState();
         });
     }
@@ -352,20 +301,12 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 StatusMessage = $"Đang xử lý filter '{filter}'...";
             });
 
-            var outputPath = await _imageClient.ProcessAsync(photo.CopiedPath, filter, _outputFolder, _cts.Token).ConfigureAwait(false);
+            var outputPath = await _imageClient.ProcessAsync(photo.CopiedPath, filter, _settings.OutputFolder, _cts.Token).ConfigureAwait(false);
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                try
-                {
-                    CurrentProcessedImage = ImageSourceFactory.LoadFromFile(outputPath);
-                    StatusMessage = $"Xử lý xong: {Path.GetFileName(outputPath)}";
-                    AddRecentProcessedImage(outputPath);
-                }
-                catch (Exception ex)
-                {
-                    LastErrorMessage = ex.Message;
-                    StatusMessage = "Tải ảnh thất bại.";
-                }
+                CurrentProcessedImage = ImageSourceFactory.LoadFromFile(outputPath);
+                StatusMessage = $"Xử lý xong: {Path.GetFileName(outputPath)}";
+                AddRecentProcessedImage(outputPath);
             });
 
             if (_settings.EnableAutoPrint)
@@ -393,13 +334,13 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         if (!CanCapture())
         {
-            var mode = CanonUtilityDetector.DetectMode();
-            await _logger.WarnAsync($"Capture command blocked. CameraRunning={_cameraPreview.IsRunning}, HasFrame={_cameraPreview.TryGetLatestFrame(out _)}, LastFrameUtc={_cameraPreview.LastFrameReceivedAtUtc:O}").ConfigureAwait(false);
+            var isEosTether = _settings.CameraType == CameraType.Canon && CanonUtilityDetector.DetectMode() == CanonConnectionMode.EosUtilityTether;
+            await _logger.WarnAsync($"Capture command blocked. CameraRunning={_cameraService.IsRunning}, HasFrame={_cameraService.TryGetLatestFrame(out _)}, LastFrameUtc={_cameraService.LastFrameReceivedAtUtc:O}").ConfigureAwait(false);
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                LastErrorMessage = mode == CanonConnectionMode.EosUtilityTether
+                LastErrorMessage = isEosTether
                     ? "Đang ở EOS Utility tether mode. Hãy bấm nút chụp trên máy ảnh để ảnh được gửi vào thư mục watch."
-                    : "Camera chưa sẵn sàng để chụp. Hãy kiểm tra lại EOS Webcam Utility.";
+                    : "Camera chưa sẵn sàng để chụp.";
                 StatusMessage = "Không thể chụp lúc này.";
             });
 
@@ -413,28 +354,17 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             StatusMessage = "Đang chụp ảnh từ camera...";
         });
 
-        await _logger.InfoAsync($"Capture command started. CameraRunning={_cameraPreview.IsRunning}, HasFrame={_cameraPreview.TryGetLatestFrame(out _)}, LastFrameUtc={_cameraPreview.LastFrameReceivedAtUtc:O}").ConfigureAwait(false);
+        await _logger.InfoAsync($"Capture command started. CameraRunning={_cameraService.IsRunning}, HasFrame={_cameraService.TryGetLatestFrame(out _)}, LastFrameUtc={_cameraService.LastFrameReceivedAtUtc:O}").ConfigureAwait(false);
 
         try
         {
-            var capturedPath = await _cameraPreview.CaptureLatestFrameAsync(_processingFolder, _cts.Token).ConfigureAwait(false);
+            var capturedPath = await _cameraService.CaptureLatestFrameAsync(_settings.ProcessingFolder, _cts.Token).ConfigureAwait(false);
             _lastCapturedImagePath = capturedPath;
-
-            ImageSource? capturedImage = null;
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                try
-                {
-                    capturedImage = ImageSourceFactory.LoadFromFile(capturedPath);
-                    CurrentCapturedImage = capturedImage;
-                    CurrentProcessedImage = capturedImage;
-                    StatusMessage = $"Đã chụp và lưu ảnh: {Path.GetFileName(capturedPath)}";
-                }
-                catch (Exception ex)
-                {
-                    LastErrorMessage = "Lỗi tải ảnh: " + ex.Message;
-                    StatusMessage = "Chụp ảnh thành công nhưng không hiển thị được ảnh.";
-                }
+                CurrentCapturedImage = ImageSourceFactory.LoadFromFile(capturedPath);
+                CurrentProcessedImage = CurrentCapturedImage;
+                StatusMessage = $"Đã chụp và lưu ảnh: {Path.GetFileName(capturedPath)}";
             });
 
             await _logger.InfoAsync($"Capture command finished. Saved={capturedPath}").ConfigureAwait(false);
@@ -458,7 +388,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     private bool CanCapture()
     {
-        return _cameraPreview.IsRunning && _cameraPreview.TryGetLatestFrame(out _);
+        return _cameraService.IsRunning && _cameraService.TryGetLatestFrame(out _);
     }
 
     private void RefreshCaptureCommandState()
@@ -542,19 +472,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         StatusMessage = message;
     }
 
-    private void EndSession()
-    {
-        StatusMessage = "Đang kết thúc phiên...";
-        _ = _logger.InfoAsync("EndSession requested by user.");
-        EndSessionRequested?.Invoke(this, EventArgs.Empty);
-    }
-
-    public event EventHandler? EndSessionRequested;
-
     public void Dispose()
     {
         _cts.Cancel();
-        _cameraPreview.Dispose();
+        _cameraService.Dispose();
         _watcher.Dispose();
         _imageClient.Dispose();
         _processingLock.Dispose();
@@ -571,9 +492,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     private void EnsureFolders()
     {
-        Directory.CreateDirectory(_watchFolder);
-        Directory.CreateDirectory(_processingFolder);
-        Directory.CreateDirectory(_outputFolder);
+        Directory.CreateDirectory(_settings.WatchFolder);
+        Directory.CreateDirectory(_settings.ProcessingFolder);
+        Directory.CreateDirectory(_settings.OutputFolder);
         Directory.CreateDirectory(_settings.LogFolder);
     }
 }

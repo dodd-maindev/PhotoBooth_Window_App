@@ -130,18 +130,55 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,6">
-                    <TextBlock Text="JOLI FILM - SELFI BOOTH HANOI"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="#E8C786"
-                               HorizontalAlignment="Center" />
-                    <TextBlock Text="34 ngõ 58 Đào Tấn, Ba Đình, Hà Nội"
-                               FontSize="11"
-                               Foreground="#D8BFA1"
-                               HorizontalAlignment="Center"
-                               Margin="0,4,0,0" />
-                </StackPanel>
+                <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                        <TextBlock Text="JOLI FILM - SELFI BOOTH HANOI"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="#E8C786"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="34 ngõ 58 Đào Tấn, Ba Đình, Hà Nội"
+                                   FontSize="11"
+                                   Foreground="#D8BFA1"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            x:Name="SettingsButton"
+                            Content="Cài đặt"
+                            VerticalAlignment="Top"
+                            Margin="0,0,0,0"
+                            Click="SettingsButton_Click"
+                            Foreground="#170507"
+                            Background="#B98A4A"
+                            BorderBrush="#8A6236"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            FontSize="11"
+                            Padding="10,4">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Root"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="3"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.9" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
 
                 <Separator Grid.Row="1"
                            Background="#5A241A"

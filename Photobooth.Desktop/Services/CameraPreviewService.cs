@@ -1,8 +1,6 @@
-using AForge.Video;
-using AForge.Video.DirectShow;
-using System.Drawing;
-using System.Drawing.Imaging;
+using OpenCvSharp;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -12,7 +10,10 @@ public sealed class CameraPreviewService : IDisposable
 {
     private readonly FileLogger _logger;
     private readonly object _frameLock = new();
-    private VideoCaptureDevice? _cameraDevice;
+    private VideoCapture? _capture;
+    private CancellationTokenSource? _captureCts;
+    private Task? _captureLoop;
+    private volatile bool _isCapturing;
     private volatile bool _isStopping;
     private BitmapSource? _latestFrame;
     private DateTime? _lastFrameReceivedAtUtc;
@@ -78,47 +79,73 @@ public sealed class CameraPreviewService : IDisposable
             return true;
         }
 
-        var devices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
         ClearLatestFrame();
-        if (devices.Count == 0)
-        {
-            LastStatusMessage = "Không tìm thấy camera video nào trên máy.";
-            await _logger.WarnAsync(LastStatusMessage).ConfigureAwait(false);
-            return false;
-        }
 
-        await _logger.InfoAsync("Detected video input devices:").ConfigureAwait(false);
-        foreach (FilterInfo device in devices)
-        {
-            await _logger.InfoAsync($"- {device.Name}").ConfigureAwait(false);
-        }
-
-        var selectedDevice = SelectDevice(devices, preferredCameraName, deviceIndex);
-        if (selectedDevice is null)
-        {
-            LastStatusMessage = $"Không tìm thấy camera phù hợp với '{preferredCameraName}'.";
-            await _logger.WarnAsync(LastStatusMessage).ConfigureAwait(false);
-            return false;
-        }
+        var resolvedIndex = ResolveDeviceIndex(preferredCameraName, deviceIndex);
+        await _logger.InfoAsync($"[CameraPreview] Starting webcam preview on device index: {resolvedIndex}").ConfigureAwait(false);
 
         try
         {
-            _cameraDevice = new VideoCaptureDevice(selectedDevice.MonikerString);
-            _cameraDevice.NewFrame += OnNewFrame;
-            _cameraDevice.PlayingFinished += OnPlayingFinished;
-            _cameraDevice.Start();
+            _capture = new VideoCapture(resolvedIndex, VideoCaptureAPIs.DSHOW);
+
+            if (!_capture.IsOpened())
+            {
+                await _logger.WarnAsync($"[CameraPreview] Cannot open device index {resolvedIndex}. Trying fallback devices...").ConfigureAwait(false);
+                _capture.Dispose();
+                _capture = null;
+
+                for (var i = 0; i < 10; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+                    try
+                    {
+                        var fallback = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
+                        if (fallback.IsOpened())
+                        {
+                            _capture = fallback;
+                            resolvedIndex = i;
+                            await _logger.InfoAsync($"[CameraPreview] Opened fallback device index: {i}").ConfigureAwait(false);
+                            break;
+                        }
+                        fallback.Dispose();
+                    }
+                    catch { }
+                }
+
+                if (_capture is null || !_capture.IsOpened())
+                {
+                    LastStatusMessage = "Không tìm thấy camera video nào trên máy.";
+                    await _logger.WarnAsync(LastStatusMessage).ConfigureAwait(false);
+                    return false;
+                }
+            }
+
+            _capture.Set(VideoCaptureProperties.FourCC, VideoWriter.FourCC('M', 'J', 'P', 'G'));
+            _capture.Set(VideoCaptureProperties.FrameWidth, 1280);
+            _capture.Set(VideoCaptureProperties.FrameHeight, 720);
+            _capture.Set(VideoCaptureProperties.Fps, 30);
+            _capture.Set(VideoCaptureProperties.BufferSize, 1);
+
+            var actualWidth = _capture.Get(VideoCaptureProperties.FrameWidth);
+            var actualHeight = _capture.Get(VideoCaptureProperties.FrameHeight);
+            var actualFps = _capture.Get(VideoCaptureProperties.Fps);
+            await _logger.InfoAsync($"[CameraPreview] Actual settings: {actualWidth}x{actualHeight} @ {actualFps} fps").ConfigureAwait(false);
+
+            _captureCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _isCapturing = true;
+            _captureLoop = Task.Run(() => CaptureLoop(_captureCts.Token), _captureCts.Token);
 
             var started = await WaitForStartAsync(cancellationToken).ConfigureAwait(false);
             if (!started)
             {
                 Stop();
-                LastStatusMessage = $"Không mở được camera '{selectedDevice.Name}'.";
+                LastStatusMessage = "Không mở được camera.";
                 await _logger.WarnAsync(LastStatusMessage).ConfigureAwait(false);
                 return false;
             }
 
             IsRunning = true;
-            // LastStatusMessage = $"Camera live view đang chạy: {selectedDevice.Name}";
+            LastStatusMessage = "Camera live view đang chạy.";
             await _logger.InfoAsync(LastStatusMessage).ConfigureAwait(false);
             return true;
         }
@@ -131,27 +158,28 @@ public sealed class CameraPreviewService : IDisposable
         }
     }
 
-    private static FilterInfo? SelectDevice(FilterInfoCollection devices, string preferredCameraName, int deviceIndex)
+    private static int ResolveDeviceIndex(string preferredCameraName, int deviceIndex)
     {
         if (!string.IsNullOrWhiteSpace(preferredCameraName))
         {
-            var preferred = devices.Cast<FilterInfo>()
-                .FirstOrDefault(device => device.Name.Contains(preferredCameraName, StringComparison.OrdinalIgnoreCase));
-
-            if (preferred is not null)
+            for (var i = 0; i < 10; i++)
             {
-                return preferred;
+                try
+                {
+                    using var cap = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
+                    if (cap.IsOpened())
+                    {
+                        var name = "device-" + i;
+                        if (name.Contains(preferredCameraName, StringComparison.OrdinalIgnoreCase))
+                            return i;
+                    }
+                }
+                catch { }
             }
-
-            return null;
         }
 
-        if (deviceIndex >= 0 && deviceIndex < devices.Count)
-        {
-            return devices[deviceIndex];
-        }
-
-        return devices.Cast<FilterInfo>().FirstOrDefault();
+        if (deviceIndex >= 0) return deviceIndex;
+        return 0;
     }
 
     private async Task<bool> WaitForStartAsync(CancellationToken cancellationToken)
@@ -159,7 +187,7 @@ public sealed class CameraPreviewService : IDisposable
         for (var i = 0; i < 50; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (_cameraDevice is not null && _cameraDevice.IsRunning)
+            if (_capture is not null && _capture.IsOpened())
             {
                 return true;
             }
@@ -170,42 +198,67 @@ public sealed class CameraPreviewService : IDisposable
         return false;
     }
 
-    private void OnNewFrame(object sender, NewFrameEventArgs eventArgs)
+    private void CaptureLoop(CancellationToken ct)
     {
-        if (_isStopping)
-        {
-            return;
-        }
+        using var frame = new Mat();
+        using var rgbFrame = new Mat();
 
-        try
+        while (!ct.IsCancellationRequested && _isCapturing)
         {
-            using var frame = (Bitmap)eventArgs.Frame.Clone();
-            var imageSource = ConvertBitmapToImageSource(frame);
-            lock (_frameLock)
+            try
             {
-                _latestFrame = imageSource;
-                _lastFrameReceivedAtUtc = DateTime.UtcNow;
+                if (_capture is null || !_capture.IsOpened())
+                    break;
+
+                if (!_capture.Read(frame) || frame.Empty())
+                {
+                    if (ct.IsCancellationRequested) break;
+                    Thread.Sleep(5);
+                    continue;
+                }
+
+                if (_isStopping) break;
+
+                Cv2.CvtColor(frame, rgbFrame, ColorConversionCodes.BGR2BGRA);
+                var bitmapSource = MatToBitmapSource(rgbFrame);
+
+                lock (_frameLock)
+                {
+                    _latestFrame = bitmapSource;
+                    _lastFrameReceivedAtUtc = DateTime.UtcNow;
+                }
+
+                FrameAvailable?.Invoke(bitmapSource);
             }
-            FrameAvailable?.Invoke(imageSource);
-        }
-        catch (Exception ex)
-        {
-            LastStatusMessage = $"Camera frame error: {ex.Message}";
-            _ = _logger.ErrorAsync(LastStatusMessage, ex);
+            catch (AccessViolationException ex)
+            {
+                _logger.ErrorAsync($"[CameraPreview] AccessViolation in capture loop: {ex.Message}", ex).Wait();
+                break;
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.ErrorAsync($"[CameraPreview] Frame capture error: {ex.Message}", ex).Wait();
+            }
         }
     }
 
-    private void OnPlayingFinished(object sender, ReasonToFinishPlaying reason)
+    private static BitmapSource MatToBitmapSource(Mat mat)
     {
-        if (_isStopping)
-        {
-            return;
-        }
+        var width = mat.Width;
+        var height = mat.Height;
+        var stride = width * 4;
+        var pixels = new byte[height * stride];
 
-        LastStatusMessage = $"Camera stream đã dừng: {reason}";
-        _ = _logger.WarnAsync(LastStatusMessage);
-        IsRunning = false;
-        ClearLatestFrame();
+        Marshal.Copy(mat.Data, pixels, 0, pixels.Length);
+
+        var bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+        bitmap.WritePixels(new System.Windows.Int32Rect(0, 0, width, height), pixels, stride, 0);
+        bitmap.Freeze();
+        return bitmap;
     }
 
     private void ClearLatestFrame()
@@ -217,37 +270,29 @@ public sealed class CameraPreviewService : IDisposable
         }
     }
 
-    private static BitmapSource ConvertBitmapToImageSource(Bitmap bitmap)
-    {
-        using var memoryStream = new MemoryStream();
-        bitmap.Save(memoryStream, ImageFormat.Bmp);
-        memoryStream.Position = 0;
-
-        var bitmapImage = new BitmapImage();
-        bitmapImage.BeginInit();
-        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-        bitmapImage.StreamSource = memoryStream;
-        bitmapImage.EndInit();
-        bitmapImage.Freeze();
-        return bitmapImage;
-    }
-
     public void Stop()
     {
         _isStopping = true;
+        _isCapturing = false;
 
-        if (_cameraDevice is not null)
+        if (_captureCts is not null)
         {
-            _cameraDevice.NewFrame -= OnNewFrame;
-            _cameraDevice.PlayingFinished -= OnPlayingFinished;
+            _captureCts.Cancel();
+            _captureCts.Dispose();
+            _captureCts = null;
+        }
 
-            if (_cameraDevice.IsRunning)
-            {
-                _cameraDevice.SignalToStop();
-                _cameraDevice.WaitForStop();
-            }
+        if (_captureLoop is not null)
+        {
+            try { _captureLoop.Wait(TimeSpan.FromSeconds(3)); } catch { }
+            _captureLoop = null;
+        }
 
-            _cameraDevice = null;
+        if (_capture is not null)
+        {
+            try { _capture.Release(); } catch { }
+            _capture.Dispose();
+            _capture = null;
         }
 
         IsRunning = false;
