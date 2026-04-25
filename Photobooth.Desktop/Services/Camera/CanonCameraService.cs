@@ -45,25 +45,8 @@ public sealed class CanonCameraService : ICameraService
 
     public async Task<string> CaptureLatestFrameAsync(string outputFolder, CancellationToken cancellationToken)
     {
-        await _logger.InfoAsync("[Canon] Capture requested. Camera running=" + IsRunning + ", hasFrame=" + TryGetLatestFrame(out _)).ConfigureAwait(false);
-
-        if (!TryGetLatestFrame(out var rawFrame) || rawFrame is not BitmapSource bmpFrame)
-        {
-            await _logger.WarnAsync("[Canon] Capture blocked: no live frame available.").ConfigureAwait(false);
-            throw new InvalidOperationException("Chua co frame camera de chup.");
-        }
-
-        Directory.CreateDirectory(outputFolder);
-        var fileName = "capture-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".png";
-        var outputPath = Path.Combine(outputFolder, fileName);
-
-        await using var fileStream = new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bmpFrame));
-        encoder.Save(fileStream);
-
-        await _logger.InfoAsync("[Canon] Captured live frame -> " + outputPath).ConfigureAwait(false);
-        return outputPath;
+        await _logger.WarnAsync("[Canon] Bỏ qua nút Capture trên app. Yêu cầu bấm nút vật lý trên máy ảnh.").ConfigureAwait(false);
+        throw new InvalidOperationException("Vui lòng bấm nút chụp trực tiếp trên máy ảnh Canon để nháy flash. App sẽ tự động nhận ảnh.");
     }
 
     public async Task<bool> StartAsync(CancellationToken cancellationToken)

@@ -44,7 +44,7 @@ public sealed class FujiCameraService : ICameraService
 
         _saveWatcher = new FileSystemWatcher(_fujiSaveFolder)
         {
-            IncludeSubdirectories = false,
+            IncludeSubdirectories = true,
             EnableRaisingEvents = false,
             Filter = "*.*",
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size

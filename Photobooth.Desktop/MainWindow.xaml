@@ -58,8 +58,8 @@
         </Style>
 
         <Style TargetType="Button" x:Key="FilterButtonStyle">
-            <Setter Property="Margin" Value="0,0,0,12" />
-            <Setter Property="Padding" Value="16,14" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="12,10" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="Background" Value="#3C1519" />
             <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
@@ -220,9 +220,9 @@
 
         <Grid Grid.Row="1" Margin="12,10,12,10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.30*" />
-                <ColumnDefinition Width="1.30*" />
-                <ColumnDefinition Width="0.70*" />
+                <ColumnDefinition Width="1.55*" />
+                <ColumnDefinition Width="1.55*" />
+                <ColumnDefinition Width="0.50*" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,10,0">

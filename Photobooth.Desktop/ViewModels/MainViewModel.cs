@@ -65,8 +65,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             new("grayscale", "Grayscale", "Ảnh đen trắng rõ nét"),
             new("blur", "Blur", "Làm mờ nhẹ để tạo hiệu ứng"),
             new("vintage", "Vintage", "Tông cổ điển, ấm và mềm"),
-            new("beauty", "Beauty", "Làm mịn da cơ bản"),
-            new("remove_background", "Remove background", "Tách nền bằng AI nếu cài mediapipe")
+            new("beauty", "Beauty", "Làm mịn da cơ bản")
         };
 
         _selectedFilter = Filters.FirstOrDefault(x => x.Key == "beauty") ?? Filters.FirstOrDefault();
@@ -216,22 +215,6 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     private async Task StartCameraPreviewAsync()
     {
-        if (_settings.CameraType == CameraType.Canon)
-        {
-            var mode = CanonUtilityDetector.DetectMode();
-            await _logger.InfoAsync($"Detected Canon connection mode: {mode}").ConfigureAwait(false);
-
-            if (mode == CanonConnectionMode.EosUtilityTether)
-            {
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    CameraStatusMessage = "Đang dùng Canon EOS Utility (tether). Hệ thống sẽ nhận ảnh từ thư mục watch khi bấm chụp trên máy ảnh.";
-                    StatusMessage = "Tether mode đã bật. Nút Capture trong app sẽ không dùng trong mode này.";
-                    RefreshCaptureCommandState();
-                });
-                return;
-            }
-        }
 
         var started = await _cameraService.StartAsync(_cts.Token).ConfigureAwait(false);
         await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -262,7 +245,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _lastCapturedImagePath = args.CopiedPath;
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
-            UpdateStatus($"Đã nhận ảnh mới: {Path.GetFileName(args.CopiedPath)}");
+            StatusMessage = $"Đã nhận ảnh mới: {Path.GetFileName(args.CopiedPath)}";
             CurrentCapturedImage = ImageSourceFactory.LoadFromFile(args.CopiedPath);
             CurrentProcessedImage = CurrentCapturedImage;
             AddRecentProcessedImage(args.CopiedPath);
@@ -335,13 +318,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         if (!CanCapture())
         {
-            var isEosTether = _settings.CameraType == CameraType.Canon && CanonUtilityDetector.DetectMode() == CanonConnectionMode.EosUtilityTether;
             await _logger.WarnAsync($"Capture command blocked. CameraRunning={_cameraService.IsRunning}, HasFrame={_cameraService.TryGetLatestFrame(out _)}, LastFrameUtc={_cameraService.LastFrameReceivedAtUtc:O}").ConfigureAwait(false);
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                LastErrorMessage = isEosTether
-                    ? "Đang ở EOS Utility tether mode. Hãy bấm nút chụp trên máy ảnh để ảnh được gửi vào thư mục watch."
-                    : "Camera chưa sẵn sàng để chụp.";
+                LastErrorMessage = "Camera chưa sẵn sàng để chụp.";
                 StatusMessage = "Không thể chụp lúc này.";
             });
 

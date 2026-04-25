@@ -27,7 +27,7 @@ public sealed class CameraFolderWatcher : IDisposable
 
         _watcher = new FileSystemWatcher(_watchFolder)
         {
-            IncludeSubdirectories = false,
+            IncludeSubdirectories = true,
             EnableRaisingEvents = false,
             Filter = "*.*",
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
