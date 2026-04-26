@@ -100,23 +100,25 @@ public sealed class FujiCameraService : ICameraService
 
     private async Task<bool> StartLivePreviewAsync(CancellationToken cancellationToken)
     {
-        var deviceIndex = ResolveLiveWebcamDeviceIndex();
-        await _logger.InfoAsync("[Fuji] Starting live preview on device index: " + deviceIndex + " (preferred: '" + _preferredCameraName + "')").ConfigureAwait(false);
+        var deviceIndex = ResolveDeviceIndex();
+        await _logger.InfoAsync("[Fuji] Starting live preview on device index: " + deviceIndex).ConfigureAwait(false);
 
         try
         {
-            // Use DirectShow backend instead of MSMF for much better stability on Windows
+            // Use DirectShow backend - thử trực tiếp device đã resolve
             _liveCapture = new VideoCapture(deviceIndex, VideoCaptureAPIs.DSHOW);
 
             if (!_liveCapture.IsOpened())
             {
-                await _logger.WarnAsync("[Fuji] Cannot open live device index " + deviceIndex + " with DShow. Trying fallback devices...").ConfigureAwait(false);
+                await _logger.WarnAsync("[Fuji] Cannot open device index " + deviceIndex + " with DShow. Trying fallback devices...").ConfigureAwait(false);
                 _liveCapture.Dispose();
                 _liveCapture = null;
 
-                for (var i = 0; i < 10; i++)
+                // Chỉ thử 0-2 thay vì 0-9 (vì thường webcam là 0)
+                for (var i = 0; i < 3; i++)
                 {
                     if (cancellationToken.IsCancellationRequested) return false;
+                    if (i == deviceIndex) continue; // Đã thử rồi
                     try
                     {
                         var fallback = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
@@ -169,11 +171,27 @@ public sealed class FujiCameraService : ICameraService
         }
     }
 
-    private int ResolveLiveWebcamDeviceIndex()
+    private int ResolveDeviceIndex()
     {
+        // Nếu có preferred name hoặc device index cụ thể, thử trực tiếp trước (không loop)
+        if (_liveWebcamDeviceIndex >= 0)
+        {
+            try
+            {
+                using var cap = new VideoCapture(_liveWebcamDeviceIndex, VideoCaptureAPIs.DSHOW);
+                if (cap.IsOpened())
+                {
+                    _logger.InfoAsync($"[Fuji] Direct connect to device index {_liveWebcamDeviceIndex}").Wait();
+                    return _liveWebcamDeviceIndex;
+                }
+            }
+            catch { }
+        }
+
+        // Thử preferred name nếu có
         if (!string.IsNullOrWhiteSpace(_preferredCameraName))
         {
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < 5; i++) // Giảm từ 10 xuống 5
             {
                 try
                 {
@@ -189,7 +207,27 @@ public sealed class FujiCameraService : ICameraService
             }
         }
 
-        if (_liveWebcamDeviceIndex >= 0) return _liveWebcamDeviceIndex;
+        // Fallback: thử 0 trước (thường là webcam mặc định)
+        try
+        {
+            using var cap = new VideoCapture(0, VideoCaptureAPIs.DSHOW);
+            if (cap.IsOpened())
+                return 0;
+        }
+        catch { }
+
+        // Cuối cùng mới loop tìm device khả dụng
+        for (var i = 1; i < 5; i++)
+        {
+            try
+            {
+                using var cap = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
+                if (cap.IsOpened())
+                    return i;
+            }
+            catch { }
+        }
+
         return 0;
     }
 

@@ -60,4 +60,18 @@ public partial class CustomerInputDialog : Window
 
         base.OnKeyDown(e);
     }
+
+    private void CustomerNameTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            StartButton_Click(this, new RoutedEventArgs());
+            e.Handled = true;
+        }
+    }
+
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        CustomerNameTextBox.Focus();
+    }
 }

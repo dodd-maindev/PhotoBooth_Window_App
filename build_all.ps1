@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Master build script — bundles the Photobooth app into a single .exe.
+    Master build script â€” bundles the Photobooth app into a single .exe.
 
 .DESCRIPTION
     Step 1: Build the Python FastAPI service into python_service.exe (PyInstaller).
@@ -30,12 +30,12 @@ $PythonExe     = Join-Path $ResourcesDir "python_service.exe"
 
 function Write-Step([string]$Message) {
     Write-Host ""
-    Write-Host "════════════════════════════════════════════" -ForegroundColor DarkCyan
+    Write-Host "============================================" -ForegroundColor DarkCyan
     Write-Host "  $Message" -ForegroundColor Cyan
-    Write-Host "════════════════════════════════════════════" -ForegroundColor DarkCyan
+    Write-Host "============================================" -ForegroundColor DarkCyan
 }
 
-# ── Step 1: Build Python service ───────────────────────────────────────────
+# -- Step 1: Build Python service -------------------------------------------
 if ($SkipPythonBuild) {
     Write-Step "Step 1/2: Skipping Python build (-SkipPythonBuild flag set)"
     if (-not (Test-Path $PythonExe)) {
@@ -43,7 +43,7 @@ if ($SkipPythonBuild) {
     }
 }
 else {
-    Write-Step "Step 1/2: Building Python service → python_service.exe"
+    Write-Step "Step 1/2: Building Python service -> python_service.exe"
     Push-Location $PythonSvcDir
     try {
         & powershell.exe -ExecutionPolicy Bypass -File ".\build_service.ps1"
@@ -56,11 +56,11 @@ else {
     if (-not (Test-Path $PythonExe)) {
         Write-Error "python_service.exe was not produced at '$PythonExe'."
     }
-    Write-Host "✓ python_service.exe ready ($([math]::Round((Get-Item $PythonExe).Length / 1MB, 1)) MB)" -ForegroundColor Green
+    Write-Host "[OK] python_service.exe ready ($([math]::Round((Get-Item $PythonExe).Length / 1MB, 1)) MB)" -ForegroundColor Green
 }
 
-# ── Step 2: Publish WPF app as single file ─────────────────────────────────
-Write-Step "Step 2/2: Publishing WPF app → single-file exe"
+# -- Step 2: Publish WPF app as single file ---------------------------------
+Write-Step "Step 2/2: Publishing WPF app -> single-file exe"
 
 if (Test-Path $DistDir) {
     Remove-Item $DistDir -Recurse -Force
@@ -84,19 +84,19 @@ finally {
     Pop-Location
 }
 
-# ── Summary ────────────────────────────────────────────────────────────────
+# -- Summary ----------------------------------------------------------------
 $OutputExe = Join-Path $DistDir "Photobooth.Desktop.exe"
 if (-not (Test-Path $OutputExe)) {
-    Write-Error "Build failed — output exe not found at '$OutputExe'."
+    Write-Error "Build failed - output exe not found at '$OutputExe'."
 }
 
 $SizeMb = [math]::Round((Get-Item $OutputExe).Length / 1MB, 1)
 Write-Host ""
-Write-Host "╔══════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║  BUILD COMPLETE                              ║" -ForegroundColor Green
-Write-Host "║                                              ║" -ForegroundColor Green
-Write-Host "║  Output : dist\Photobooth.Desktop.exe        ║" -ForegroundColor Green
-Write-Host "║  Size   : $($SizeMb.ToString().PadRight(6)) MB                         ║" -ForegroundColor Green
-Write-Host "╚══════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host "------------------------------------------------" -ForegroundColor Green
+Write-Host "|  BUILD COMPLETE                              |" -ForegroundColor Green
+Write-Host "|                                              |" -ForegroundColor Green
+Write-Host "|  Output : dist\Photobooth.Desktop.exe        |" -ForegroundColor Green
+Write-Host "|  Size   : $($SizeMb.ToString().PadRight(6)) MB                         |" -ForegroundColor Green
+Write-Host "------------------------------------------------" -ForegroundColor Green
 Write-Host ""
 Write-Host "Run: .\dist\Photobooth.Desktop.exe" -ForegroundColor Yellow

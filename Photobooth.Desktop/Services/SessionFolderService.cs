@@ -2,60 +2,111 @@ using System.IO;
 
 namespace Photobooth.Desktop.Services;
 
-/// <summary>
-/// Builds and resolves the structured session folder hierarchy.
-/// Layout: {root}/{customerName}/{yyyy-MM-dd}/raw|filter/{filterKey}
-/// </summary>
-public sealed class SessionFolderService
+public class SessionFolderService
 {
-    private readonly string _sessionsRoot;
+    private readonly string _sessionsBaseFolder;
+    private string? _currentSessionFolder;
+    private string? _currentOriginalFolder;
+    private string? _currentFilterFolder;
+    private int _photoCounter;
+    private string? _currentFilterName;
 
-    /// <summary>Initialises the service with the root sessions directory.</summary>
-    public SessionFolderService(string sessionsRoot)
+    public SessionFolderService(string sessionsBaseFolder = @"C:\photobooth\sessions")
     {
-        _sessionsRoot = sessionsRoot;
+        _sessionsBaseFolder = sessionsBaseFolder;
     }
 
-    /// <summary>
-    /// Returns and ensures the raw folder for a given customer + date.
-    /// Output: {root}/{customer}/{date}/raw
-    /// </summary>
-    public string EnsureRawFolder(string customerName, DateTime sessionDate)
+    public string CurrentSessionFolder => _currentSessionFolder ?? string.Empty;
+    public string CurrentOriginalFolder => _currentOriginalFolder ?? string.Empty;
+    public int PhotoCounter => _photoCounter;
+
+    public void StartNewSession(string customerName)
     {
-        var path = Path.Combine(
-            _sessionsRoot,
-            Sanitize(customerName),
-            sessionDate.ToString("yyyy-MM-dd"),
-            "raw");
-        Directory.CreateDirectory(path);
-        return path;
+        _photoCounter = 0;
+        _currentFilterName = null;
+        _currentFilterFolder = null;
+
+        var dateFolder = DateTime.Now.ToString("yyyy-MM-dd");
+        var timeFolder = DateTime.Now.ToString("HHmm");
+        var sessionFolderName = $"{customerName}_{timeFolder}";
+
+        _currentSessionFolder = Path.Combine(_sessionsBaseFolder, dateFolder, sessionFolderName);
+        _currentOriginalFolder = Path.Combine(_currentSessionFolder, "original");
+
+        Directory.CreateDirectory(_sessionsBaseFolder);
+        Directory.CreateDirectory(_currentSessionFolder);
+        Directory.CreateDirectory(_currentOriginalFolder);
+
+        System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] Session started: {_currentSessionFolder}{Environment.NewLine}");
     }
 
-    /// <summary>
-    /// Returns and ensures the filter cache folder for a given filter key.
-    /// Output: {root}/{customer}/{date}/filter/{filterKey}
-    /// </summary>
-    public string EnsureFilterFolder(string customerName, DateTime sessionDate, string filterKey)
+    public string? SaveOriginalPhoto(string sourceImagePath)
     {
-        var path = Path.Combine(
-            _sessionsRoot,
-            Sanitize(customerName),
-            sessionDate.ToString("yyyy-MM-dd"),
-            "filter",
-            filterKey);
-        Directory.CreateDirectory(path);
-        return path;
-    }
-
-    /// <summary>Sanitises a customer name for use as a directory component.</summary>
-    private static string Sanitize(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var result = name.Trim();
-        foreach (var c in invalid)
+        if (string.IsNullOrEmpty(_currentOriginalFolder))
         {
-            result = result.Replace(c, '_');
+            System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] SaveOriginalPhoto: _currentOriginalFolder is null{Environment.NewLine}");
+            return null;
         }
-        return result.Replace("..", "_").Replace("/", "_").Replace("\\", "_");
+
+        if (!System.IO.File.Exists(sourceImagePath))
+        {
+            System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] SaveOriginalPhoto: source file not found: {sourceImagePath}{Environment.NewLine}");
+            return null;
+        }
+
+        _photoCounter++;
+        var fileName = $"photobooth_{_photoCounter}{System.IO.Path.GetExtension(sourceImagePath)}";
+        var destPath = System.IO.Path.Combine(_currentOriginalFolder, fileName);
+
+        System.IO.File.Copy(sourceImagePath, destPath, overwrite: true);
+        System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] Saved original to: {destPath}{Environment.NewLine}");
+        return destPath;
+    }
+
+    public void SetCurrentFilter(string filterName)
+    {
+        if (_currentFilterName == filterName)
+            return;
+
+        _currentFilterName = filterName;
+
+        if (string.IsNullOrEmpty(_currentSessionFolder))
+            return;
+
+        _currentFilterFolder = Path.Combine(_currentSessionFolder, "filter", filterName);
+        Directory.CreateDirectory(_currentFilterFolder!);
+    }
+
+    public string? SaveFilteredPhoto(string sourceImagePath, string filterName)
+    {
+        if (string.IsNullOrEmpty(_currentSessionFolder) || !File.Exists(sourceImagePath))
+            return null;
+
+        var filterFolder = Path.Combine(_currentSessionFolder, "filter", filterName);
+        Directory.CreateDirectory(filterFolder);
+
+        var fileName = $"photobooth_{_photoCounter}{Path.GetExtension(sourceImagePath)}";
+        var destPath = Path.Combine(filterFolder, fileName);
+
+        File.Copy(sourceImagePath, destPath, overwrite: true);
+        return destPath;
+    }
+
+    public string GetSessionInfo()
+    {
+        if (string.IsNullOrEmpty(_currentSessionFolder))
+            return "Chưa có session";
+
+        var dirInfo = new DirectoryInfo(_currentSessionFolder);
+        return $"Session: {dirInfo.Name} | Ảnh: {_photoCounter}";
+    }
+
+    public void EndSession()
+    {
+        _currentSessionFolder = null;
+        _currentOriginalFolder = null;
+        _currentFilterFolder = null;
+        _currentFilterName = null;
+        _photoCounter = 0;
     }
 }

@@ -45,6 +45,13 @@ public partial class SettingsDialog : Window
         UpdateFieldsVisibility();
     }
 
+    private void GuideButton_Click(object sender, RoutedEventArgs e)
+    {
+        var isFuji = GetSelectedCameraType() == CameraType.Fuji;
+        var guideWindow = new GuideDialog(isFuji) { Owner = this };
+        guideWindow.ShowDialog();
+    }
+
     private void UpdateFieldsVisibility()
     {
         var isFuji = GetSelectedCameraType() == CameraType.Fuji;

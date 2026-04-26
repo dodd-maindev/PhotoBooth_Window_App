@@ -11,14 +11,18 @@ public sealed class CanonCameraService : ICameraService
     private readonly FileLogger _logger;
     private readonly string _preferredCameraName;
     private readonly int _deviceIndex;
-    private readonly object _frameLock = new();
-    private VideoCapture? _capture;
-    private CancellationTokenSource? _captureCts;
-    private Task? _captureLoop;
+    private readonly object _liveFrameLock = new();
+    private VideoCapture? _liveCapture;
+    private CancellationTokenSource? _liveCaptureCts;
+    private Task? _liveCaptureLoop;
     private volatile bool _isCapturing;
     private volatile bool _isStopping;
+    private WriteableBitmap? _sharedBitmap;
     private BitmapSource? _latestFrame;
     private DateTime? _lastFrameReceivedAtUtc;
+    private long _lastDispatchedTicksUtc;
+    private int _actualFpsCounter;
+    private long _fpsWindowStartTicks;
 
     public CanonCameraService(FileLogger logger, string preferredCameraName, int deviceIndex)
     {
@@ -35,12 +39,12 @@ public sealed class CanonCameraService : ICameraService
 
     public DateTime? LastFrameReceivedAtUtc
     {
-        get { lock (_frameLock) { return _lastFrameReceivedAtUtc; } }
+        get { lock (_liveFrameLock) { return _lastFrameReceivedAtUtc; } }
     }
 
     public bool TryGetLatestFrame(out ImageSource? frame)
     {
-        lock (_frameLock) { frame = _latestFrame; return frame is not null; }
+        lock (_liveFrameLock) { frame = _latestFrame; return frame is not null; }
     }
 
     public async Task<string> CaptureLatestFrameAsync(string outputFolder, CancellationToken cancellationToken)
@@ -54,33 +58,38 @@ public sealed class CanonCameraService : ICameraService
         if (IsRunning) return true;
 
         var deviceIndex = ResolveDeviceIndex();
-        await _logger.InfoAsync("[Canon] Trying device index: " + deviceIndex + " (preferred: '" + _preferredCameraName + "')").ConfigureAwait(false);
+        await _logger.InfoAsync("[Canon] Starting live preview on device index: " + deviceIndex).ConfigureAwait(false);
 
         try
         {
-            _capture = new VideoCapture(deviceIndex);
+            _liveCapture = new VideoCapture(deviceIndex, VideoCaptureAPIs.DSHOW);
 
-            if (!_capture.IsOpened())
+            if (!_liveCapture.IsOpened())
             {
                 await _logger.WarnAsync("[Canon] Cannot open device index " + deviceIndex + ". Trying fallback devices...").ConfigureAwait(false);
-                _capture.Dispose();
-                _capture = null;
+                _liveCapture.Dispose();
+                _liveCapture = null;
 
-                for (var i = 0; i < 10; i++)
+                for (var i = 0; i < 3; i++)
                 {
                     if (cancellationToken.IsCancellationRequested) return false;
-                    var fallback = new VideoCapture(i);
-                    if (fallback.IsOpened())
+                    if (i == deviceIndex) continue;
+                    try
                     {
-                        _capture = fallback;
-                        deviceIndex = i;
-                        await _logger.InfoAsync("[Canon] Opened fallback device index: " + i).ConfigureAwait(false);
-                        break;
+                        var fallback = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
+                        if (fallback.IsOpened())
+                        {
+                            _liveCapture = fallback;
+                            deviceIndex = i;
+                            await _logger.InfoAsync("[Canon] Opened live preview fallback device index: " + i).ConfigureAwait(false);
+                            break;
+                        }
+                        fallback.Dispose();
                     }
-                    fallback.Dispose();
+                    catch { }
                 }
 
-                if (_capture is null || !_capture.IsOpened())
+                if (_liveCapture is null || !_liveCapture.IsOpened())
                 {
                     LastStatusMessage = "Khong mo duoc camera video nao.";
                     await _logger.WarnAsync("[Canon] " + LastStatusMessage).ConfigureAwait(false);
@@ -88,13 +97,22 @@ public sealed class CanonCameraService : ICameraService
                 }
             }
 
-            _capture.Set(VideoCaptureProperties.FrameWidth, 1920);
-            _capture.Set(VideoCaptureProperties.FrameHeight, 1080);
-            _capture.Set(VideoCaptureProperties.Fps, 30);
+            // 640x480 @ 30fps - same as Fuji for smooth preview performance
+            _liveCapture.Set(VideoCaptureProperties.FourCC, VideoWriter.FourCC('M', 'J', 'P', 'G'));
+            _liveCapture.Set(VideoCaptureProperties.FrameWidth, 640);
+            _liveCapture.Set(VideoCaptureProperties.FrameHeight, 480);
+            _liveCapture.Set(VideoCaptureProperties.Fps, 30);
+            _liveCapture.Set(VideoCaptureProperties.BufferSize, 1);
 
-            _captureCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            // Log actual settings
+            var actualWidth = _liveCapture.Get(VideoCaptureProperties.FrameWidth);
+            var actualHeight = _liveCapture.Get(VideoCaptureProperties.FrameHeight);
+            var actualFps = _liveCapture.Get(VideoCaptureProperties.Fps);
+            await _logger.InfoAsync($"[Canon] Live webcam actual settings: {actualWidth}x{actualHeight} @ {actualFps} fps").ConfigureAwait(false);
+
+            _liveCaptureCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _isCapturing = true;
-            _captureLoop = Task.Run(() => CaptureLoop(_captureCts.Token), _captureCts.Token);
+            _liveCaptureLoop = Task.Run(() => LiveCaptureLoop(_liveCaptureCts.Token), _liveCaptureCts.Token);
 
             IsRunning = true;
             LastStatusMessage = "Canon live view: device " + deviceIndex;
@@ -112,13 +130,27 @@ public sealed class CanonCameraService : ICameraService
 
     private int ResolveDeviceIndex()
     {
+        if (_deviceIndex >= 0)
+        {
+            try
+            {
+                using var cap = new VideoCapture(_deviceIndex, VideoCaptureAPIs.DSHOW);
+                if (cap.IsOpened())
+                {
+                    _logger.InfoAsync($"[Canon] Direct connect to device index {_deviceIndex}").Wait();
+                    return _deviceIndex;
+                }
+            }
+            catch { }
+        }
+
         if (!string.IsNullOrWhiteSpace(_preferredCameraName))
         {
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < 5; i++)
             {
                 try
                 {
-                    using var cap = new VideoCapture(i);
+                    using var cap = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
                     if (cap.IsOpened())
                     {
                         var name = "device-" + i;
@@ -129,40 +161,63 @@ public sealed class CanonCameraService : ICameraService
                 catch { }
             }
         }
-        if (_deviceIndex >= 0) return _deviceIndex;
+
+        try
+        {
+            using var cap = new VideoCapture(0, VideoCaptureAPIs.DSHOW);
+            if (cap.IsOpened())
+                return 0;
+        }
+        catch { }
+
+        for (var i = 1; i < 5; i++)
+        {
+            try
+            {
+                using var cap = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
+                if (cap.IsOpened())
+                    return i;
+            }
+            catch { }
+        }
+
         return 0;
     }
 
-    private void CaptureLoop(CancellationToken ct)
+    private void LiveCaptureLoop(CancellationToken ct)
     {
         using var frame = new Mat();
+        using var rgbFrame = new Mat();
+        // Dispatch at ~24 fps (same as Fuji for smooth preview)
+        const long DispatchIntervalTicks = 41_667; // 4.17ms in 100ns ticks
 
         while (!ct.IsCancellationRequested && _isCapturing)
         {
             try
             {
-                if (_capture is null || !_capture.IsOpened())
+                if (_liveCapture is null || !_liveCapture.IsOpened())
                     break;
 
-                if (!_capture.Read(frame) || frame.Empty())
+                if (!_liveCapture.Read(frame) || frame.Empty())
                 {
                     if (ct.IsCancellationRequested) break;
-                    Thread.Sleep(10);
+                    Thread.Sleep(5);
                     continue;
                 }
 
                 if (_isStopping) break;
 
-                using var rgbFrame = new Mat();
-                Cv2.CvtColor(frame, rgbFrame, ColorConversionCodes.BGR2BGRA);
+                var nowTicks = DateTime.UtcNow.Ticks;
+                if (nowTicks - Interlocked.Read(ref _lastDispatchedTicksUtc) < DispatchIntervalTicks)
+                    continue; // Drop frame - save UI thread bandwidth
 
-                var bitmapSource = MatToBitmapSource(rgbFrame);
-                lock (_frameLock) { _latestFrame = bitmapSource; _lastFrameReceivedAtUtc = DateTime.UtcNow; }
-                FrameAvailable?.Invoke(bitmapSource);
+                Cv2.CvtColor(frame, rgbFrame, ColorConversionCodes.BGR2BGRA);
+                DispatchFrame(rgbFrame, nowTicks);
+                MeasureAndLogActualFps(nowTicks);
             }
             catch (AccessViolationException ex)
             {
-                _logger.ErrorAsync("[Canon] AccessViolation in capture loop: " + ex.Message, ex).Wait();
+                _logger.ErrorAsync("[Canon] AccessViolation in live capture loop: " + ex.Message, ex).Wait();
                 break;
             }
             catch (ObjectDisposedException)
@@ -171,24 +226,61 @@ public sealed class CanonCameraService : ICameraService
             }
             catch (Exception ex)
             {
-                _logger.ErrorAsync("[Canon] Frame capture error: " + ex.Message, ex).Wait();
+                _logger.ErrorAsync("[Canon] Live frame capture error: " + ex.Message, ex).Wait();
             }
         }
     }
 
-    private static BitmapSource MatToBitmapSource(Mat mat)
+    /// <summary>
+    /// Writes pixel data into the shared WriteableBitmap on the UI thread,
+    /// avoiding per-frame heap allocations. Same logic as Fuji.
+    /// </summary>
+    private void DispatchFrame(Mat rgbFrame, long nowTicks)
     {
-        var width = mat.Width;
-        var height = mat.Height;
+        var width = rgbFrame.Width;
+        var height = rgbFrame.Height;
         var stride = width * 4;
         var pixels = new byte[height * stride];
+        Marshal.Copy(rgbFrame.Data, pixels, 0, pixels.Length);
 
-        Marshal.Copy(mat.Data, pixels, 0, pixels.Length);
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            if (_sharedBitmap is null
+                || _sharedBitmap.PixelWidth != width
+                || _sharedBitmap.PixelHeight != height)
+            {
+                _sharedBitmap = new WriteableBitmap(
+                    width, height, 96, 96, PixelFormats.Bgra32, null);
+            }
 
-        var bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
-        bitmap.WritePixels(new System.Windows.Int32Rect(0, 0, width, height), pixels, stride, 0);
-        bitmap.Freeze();
-        return bitmap;
+            _sharedBitmap.Lock();
+            _sharedBitmap.WritePixels(
+                new System.Windows.Int32Rect(0, 0, width, height), pixels, stride, 0);
+            _sharedBitmap.Unlock();
+
+            lock (_liveFrameLock)
+            {
+                _latestFrame = _sharedBitmap;
+                _lastFrameReceivedAtUtc = DateTime.UtcNow;
+            }
+
+            Interlocked.Exchange(ref _lastDispatchedTicksUtc, nowTicks);
+            FrameAvailable?.Invoke(_sharedBitmap);
+        }, System.Windows.Threading.DispatcherPriority.Render);
+    }
+
+    /// <summary>
+    /// Measures and logs the actual dispatched FPS once per second.
+    /// </summary>
+    private void MeasureAndLogActualFps(long nowTicks)
+    {
+        Interlocked.Increment(ref _actualFpsCounter);
+        var windowStart = Interlocked.Read(ref _fpsWindowStartTicks);
+        if (nowTicks - windowStart < 10_000_000) return;
+
+        var count = Interlocked.Exchange(ref _actualFpsCounter, 0);
+        Interlocked.Exchange(ref _fpsWindowStartTicks, nowTicks);
+        _ = _logger.InfoAsync($"[Canon] Live actual FPS: {count}");
     }
 
     public void Stop()
@@ -196,34 +288,29 @@ public sealed class CanonCameraService : ICameraService
         _isStopping = true;
         _isCapturing = false;
 
-        if (_captureCts is not null)
+        if (_liveCaptureCts is not null)
         {
-            _captureCts.Cancel();
-            _captureCts.Dispose();
-            _captureCts = null;
+            _liveCaptureCts.Cancel();
+            _liveCaptureCts.Dispose();
+            _liveCaptureCts = null;
         }
 
-        if (_captureLoop is not null)
+        if (_liveCaptureLoop is not null)
         {
-            try { _captureLoop.Wait(TimeSpan.FromSeconds(3)); } catch { }
-            _captureLoop = null;
+            try { _liveCaptureLoop.Wait(TimeSpan.FromSeconds(3)); } catch { }
+            _liveCaptureLoop = null;
         }
 
-        if (_capture is not null)
+        if (_liveCapture is not null)
         {
-            try { _capture.Release(); } catch { }
-            _capture.Dispose();
-            _capture = null;
+            try { _liveCapture.Release(); } catch { }
+            _liveCapture.Dispose();
+            _liveCapture = null;
         }
 
         IsRunning = false;
-        ClearLatestFrame();
+        lock (_liveFrameLock) { _latestFrame = null; _lastFrameReceivedAtUtc = null; }
         _isStopping = false;
-    }
-
-    private void ClearLatestFrame()
-    {
-        lock (_frameLock) { _latestFrame = null; _lastFrameReceivedAtUtc = null; }
     }
 
     public void Dispose() => Stop();

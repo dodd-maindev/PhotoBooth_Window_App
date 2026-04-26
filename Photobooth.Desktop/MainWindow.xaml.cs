@@ -7,29 +7,60 @@ using Photobooth.Desktop.ViewModels;
 
 namespace Photobooth.Desktop;
 
+/// <summary>
+/// Main photobooth session window. Hosts the live preview, filter selection,
+/// and action toolbar. Delegates session lifecycle to <see cref="MainViewModel"/>.
+/// </summary>
 public partial class MainWindow : Window
 {
+    /// <summary>Gets the ViewModel driving this window.</summary>
     public MainViewModel? ViewModel { get; }
 
+    /// <summary>
+    /// Initialises the window, wires up the ViewModel, and subscribes to the
+    /// end-session event so the session loop in App.xaml.cs can react.
+    /// </summary>
     public MainWindow(string customerName, AppSettings settings)
     {
         InitializeComponent();
 
         ViewModel = new MainViewModel();
+        ViewModel.StartSession(customerName);
+        ViewModel.EndSessionRequested += OnViewModelEndSessionRequested;
+
         DataContext = ViewModel;
 
         Loaded += MainWindow_Loaded;
-        Closing += (_, _) => ViewModel?.Dispose();
+        Closing += (_, _) =>
+        {
+            if (ViewModel is not null)
+            {
+                ViewModel.EndSessionRequested -= OnViewModelEndSessionRequested;
+                ViewModel.Dispose();
+            }
+        };
     }
 
+    /// <summary>Raised when the operator clicks "Kết thúc", triggering the session loop.</summary>
     public event EventHandler? EndSessionRequested;
+
+    /// <summary>Forwards the ViewModel event to the window-level event for App.xaml.cs.</summary>
+    private void OnViewModelEndSessionRequested(object? sender, EventArgs e)
+    {
+        EndSessionRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         if (ViewModel is null) return;
         try
         {
-            await ViewModel.InitializeAsync();
+            // Đợi window render xong trước khi khởi tạo camera
+            // DispatcherPriority.Render đảm bảo window đã hiển thị
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+
+            // Bây giờ mới chạy InitializeAsync bất đồng bộ
+            await ViewModel.InitializeAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

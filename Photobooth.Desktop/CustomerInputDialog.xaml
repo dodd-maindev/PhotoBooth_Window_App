@@ -6,35 +6,104 @@
         mc:Ignorable="d"
         Title="Joli Films - Thông tin khách hàng"
         Icon="pack://application:,,,/asset/Logo/joli-film-logo.png"
-        Width="560"
-        Height="420"
+        Width="600"
+        Height="500"
         WindowStartupLocation="CenterScreen"
         WindowStyle="SingleBorderWindow"
         ResizeMode="NoResize"
-        Background="#170507"
-        FontFamily="Bahnschrift">
+        Background="#0A0406"
+        FontFamily="Segoe UI"
+        Loaded="Window_Loaded">
 
     <Window.Resources>
-        <LinearGradientBrush x:Key="BgGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#170507" Offset="0.00" />
-            <GradientStop Color="#2A090C" Offset="0.52" />
-            <GradientStop Color="#3A0D10" Offset="1.00" />
+        <!-- Color Palette -->
+        <SolidColorBrush x:Key="AccentGold" Color="#FFD700"/>
+        <SolidColorBrush x:Key="AccentGoldLight" Color="#FFED8A"/>
+        <SolidColorBrush x:Key="AccentGoldDark" Color="#B8860B"/>
+        <SolidColorBrush x:Key="AccentGoldMuted" Color="#8B7355"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#C9B896"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#8B7355"/>
+        <SolidColorBrush x:Key="BorderGold" Color="#4A3520"/>
+        <SolidColorBrush x:Key="BackgroundPanel" Color="#1E0C0F"/>
+
+        <!-- Gradient Brushes -->
+        <LinearGradientBrush x:Key="BackgroundGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#0A0406" Offset="0.0"/>
+            <GradientStop Color="#1A080C" Offset="0.5"/>
+            <GradientStop Color="#120508" Offset="1.0"/>
         </LinearGradientBrush>
 
-        <LinearGradientBrush x:Key="ButtonGradient" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#B98A4A" Offset="0.00" />
-            <GradientStop Color="#E3BF77" Offset="1.00" />
+        <LinearGradientBrush x:Key="CardGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1A1015" Offset="0"/>
+            <GradientStop Color="#120810" Offset="1"/>
         </LinearGradientBrush>
 
+        <LinearGradientBrush x:Key="ButtonGoldGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFD700" Offset="0.0"/>
+            <GradientStop Color="#DAA520" Offset="0.5"/>
+            <GradientStop Color="#B8860B" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <!-- Glow Effect -->
+        <DropShadowEffect x:Key="GoldGlowEffectSoft"
+                          Color="#FFD700"
+                          BlurRadius="15"
+                          ShadowDepth="0"
+                          Direction="0"
+                          Opacity="0.3"/>
+
+        <!-- Gold Button Style -->
         <Style x:Key="GoldButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#170507" />
-            <Setter Property="Background" Value="{StaticResource ButtonGradient}" />
-            <Setter Property="BorderBrush" Value="#8A6236" />
-            <Setter Property="BorderThickness" Value="3" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="Foreground" Value="#0A0406"/>
+            <Setter Property="Background" Value="{StaticResource ButtonGoldGradient}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentGoldDark}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="24,12">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FFD700" BlurRadius="10" ShadowDepth="2" Opacity="0.5" Direction="270"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#FFD700" BlurRadius="16" ShadowDepth="3" Opacity="0.7" Direction="270"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Settings Button Style -->
+        <Style x:Key="SettingsButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderGold}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -43,31 +112,17 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6"
-                                Padding="32,16">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#8A6236" BlurRadius="12" ShadowDepth="3" Opacity="0.6" Direction="270" />
-                            </Border.Effect>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
+                                      Fill="{StaticResource TextMuted}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
+                                <TextBlock Text="Cài đặt" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.92" />
-                                <Setter TargetName="Root" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#E8C786" BlurRadius="18" ShadowDepth="4" Opacity="0.7" Direction="270" />
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.78" />
-                                <Setter TargetName="Root" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#8A6236" BlurRadius="5" ShadowDepth="1" Opacity="0.5" Direction="270" />
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.45" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentGoldMuted}"/>
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource BackgroundPanel}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -75,15 +130,16 @@
             </Setter>
         </Style>
 
+        <!-- Modern TextBox Style -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#2A0F12" />
-            <Setter Property="Foreground" Value="#FFF6E8" />
-            <Setter Property="BorderBrush" Value="#7A4730" />
-            <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="Padding" Value="18,18" />
-            <Setter Property="FontSize" Value="22" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="CaretBrush" Value="#E8C786" />
+            <Setter Property="Background" Value="{StaticResource BackgroundPanel}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderGold}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="CaretBrush" Value="{StaticResource AccentGold}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -92,18 +148,18 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 Padding="{TemplateBinding Padding}"
-                                CornerRadius="6">
+                                CornerRadius="8">
                             <Border.Effect>
-                                <DropShadowEffect Color="#8A6236" BlurRadius="10" ShadowDepth="2" Opacity="0.4" Direction="270" />
+                                <DropShadowEffect Color="#FFD700" BlurRadius="8" ShadowDepth="0" Opacity="0.15" Direction="0"/>
                             </Border.Effect>
-                            <ScrollViewer x:Name="PART_ContentHost" />
+                            <ScrollViewer x:Name="PART_ContentHost"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#E8C786" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentGold}"/>
                                 <Setter TargetName="Border" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#E8C786" BlurRadius="14" ShadowDepth="3" Opacity="0.5" Direction="270" />
+                                        <DropShadowEffect Color="#FFD700" BlurRadius="12" ShadowDepth="0" Opacity="0.4" Direction="0"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
@@ -114,106 +170,117 @@
         </Style>
     </Window.Resources>
 
-    <Grid Background="{StaticResource BgGradient}">
-        <Border Background="#2A0F12"
-                BorderBrush="#7A4730"
-                BorderThickness="1"
-                Margin="24"
-                Padding="28">
+    <Grid Background="{StaticResource BackgroundGradient}">
+        <Border Background="{StaticResource CardGradient}"
+                BorderBrush="{StaticResource BorderGold}"
+                BorderThickness="2"
+                CornerRadius="16"
+                Margin="16"
+                Padding="20"
+                VerticalAlignment="Center">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="0,0,0,6">
+                <!-- Header with Logo and Settings -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                        <TextBlock Text="JOLI FILM - SELFI BOOTH HANOI"
-                                   FontSize="18"
-                                   FontWeight="SemiBold"
-                                   Foreground="#E8C786"
-                                   HorizontalAlignment="Center" />
+
+                    <!-- Logo -->
+                    <Border Grid.Column="0"
+                            Width="56" Height="56"
+                            Margin="0,0,14,0"
+                            CornerRadius="0"
+                            BorderBrush="{StaticResource AccentGold}"
+                            BorderThickness="2"
+                            Effect="{StaticResource GoldGlowEffectSoft}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#1A1015" Offset="0"/>
+                                <GradientStop Color="#0A0406" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Image Source="asset/Logo/joli-film-logo.png" Stretch="Fill"/>
+                    </Border>
+
+                    <!-- Brand Info -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="JOLI FILM" FontSize="18" FontWeight="Bold"
+                                       Foreground="{StaticResource AccentGoldLight}"/>
+                            <TextBlock Text=" - " FontSize="18" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="SELFPHOTO" FontSize="18" FontWeight="Light"
+                                       Foreground="{StaticResource TextPrimary}"/>
+                        </StackPanel>
                         <TextBlock Text="34 ngõ 58 Đào Tấn, Ba Đình, Hà Nội"
-                                   FontSize="11"
-                                   Foreground="#D8BFA1"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,4,0,0" />
+                                   FontSize="10" Foreground="{StaticResource TextSecondary}"
+                                   Margin="0,4,0,0"/>
                     </StackPanel>
-                    <Button Grid.Column="1"
+
+                    <!-- Settings Button -->
+                    <Button Grid.Column="2"
                             x:Name="SettingsButton"
-                            Content="Cài đặt"
-                            VerticalAlignment="Top"
-                            Margin="0,0,0,0"
+                            Style="{StaticResource SettingsButtonStyle}"
                             Click="SettingsButton_Click"
-                            Foreground="#170507"
-                            Background="#B98A4A"
-                            BorderBrush="#8A6236"
-                            BorderThickness="1"
-                            Cursor="Hand"
-                            FontSize="11"
-                            Padding="10,4">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Root"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="3"
-                                        Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Root" Property="Opacity" Value="0.9" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                            VerticalAlignment="Top"/>
                 </Grid>
 
-                <Separator Grid.Row="1"
-                           Background="#5A241A"
-                           Margin="0,12,0,18" />
+                <!-- Separator -->
+                <Border Grid.Row="1" Height="1" Background="{StaticResource BorderGold}" Margin="0,0,0,14"/>
 
-                <TextBlock Grid.Row="2"
-                           Text="Nhập tên khách hàng để bắt đầu phiên chụp:"
-                           FontSize="14"
-                           Foreground="#FFF6E8"
-                           Margin="0,0,0,12" />
-
-                <TextBox Grid.Row="3"
-                         x:Name="CustomerNameTextBox"
-                         Style="{StaticResource ModernTextBox}"
-                         MaxLength="80" />
-
-                <TextBlock Grid.Row="4"
-                           Text="Mỗi khách hàng sẽ có folder riêng để lưu ảnh."
-                           FontSize="11"
-                           Foreground="#D8BFA1"
-                           Margin="0,10,0,0"
-                           TextWrapping="Wrap" />
-
-                <StackPanel Grid.Row="5"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            Margin="0,20,0,0">
-                    <Button x:Name="StartButton"
-                            Style="{StaticResource GoldButton}"
-                            Content="BẮT ĐẦU CHỤP"
-                            Click="StartButton_Click"
-                            IsDefault="True"
-                            MinWidth="220"
-                            MinHeight="52" />
+                <!-- Welcome Text -->
+                <StackPanel Grid.Row="2" Margin="0,0,0,14">
+                    <TextBlock Text="Chào mừng đến với Joli Films!"
+                               FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource AccentGoldLight}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Nhập tên khách hàng để bắt đầu"
+                               FontSize="12" Foreground="{StaticResource TextSecondary}"
+                               HorizontalAlignment="Center"
+                               Margin="0,4,0,0"/>
                 </StackPanel>
+
+                <!-- Customer Name Input -->
+                <StackPanel Grid.Row="3">
+                    <TextBlock Text="Tên khách hàng:"
+                               FontSize="12" Foreground="{StaticResource TextMuted}"
+                               Margin="0,0,0,6"/>
+                    <TextBox x:Name="CustomerNameTextBox"
+                             Style="{StaticResource ModernTextBox}"
+                             MaxLength="80"
+                             KeyDown="CustomerNameTextBox_KeyDown"/>
+                </StackPanel>
+
+                <!-- Spacer -->
+                <Border Grid.Row="4" MinHeight="8"/>
+
+                <!-- Start Button -->
+                <Button Grid.Row="5"
+                        x:Name="StartButton"
+                        Style="{StaticResource GoldButton}"
+                        Click="StartButton_Click"
+                        IsDefault="True"
+                        MinWidth="260"
+                        MinHeight="46"
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="M12 15.2c1.4 0 2.6-1.2 2.6-2.6s-1.2-2.6-2.6-2.6-2.6 1.2-2.6 2.6 1.2 2.6 2.6 2.6zm9-8.2h-3.2l-1.5-1.5h-9l-1.5 1.5H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"
+                              Fill="Black" Width="18" Height="18" Stretch="Uniform" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BẮT ĐẦU CHỤP ẢNH" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Foreground="Black"/>
+                    </StackPanel>
+                </Button>
             </Grid>
         </Border>
     </Grid>

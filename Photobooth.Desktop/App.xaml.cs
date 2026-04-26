@@ -13,6 +13,7 @@ public partial class App : Application
 {
     private AppSettings? _settings;
     private PythonServiceHost? _pythonServiceHost;
+    private LoadingDialog? _loadingDialog;
 
     /// <summary>
     /// Initialises global exception handlers, loads settings, starts the
@@ -107,7 +108,19 @@ public partial class App : Application
 
             TraceBoot($"Session loop: customer '{dialog.CustomerName}' confirmed, opening MainWindow");
 
+            // Hiển thị loading dialog trước khi tạo MainWindow
+            _loadingDialog = new LoadingDialog();
+            _loadingDialog.UpdateStatus("Đang tải giao diện...");
+            _loadingDialog.Show();
+
+            // Force WPF render loading dialog trước
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+
             var mainWindow = new MainWindow(dialog.CustomerName, dialog.Settings);
+
+            // Đóng loading dialog và hiển thị MainWindow
+            _loadingDialog?.Close();
+            _loadingDialog = null;
 
             void OnLoaded(object? s, RoutedEventArgs args)
             {

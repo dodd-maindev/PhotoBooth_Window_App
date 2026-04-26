@@ -12,12 +12,15 @@ namespace Photobooth.Desktop.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase, IDisposable
 {
+    /// <summary>Raised when the operator requests to end the current session.</summary>
+    public event EventHandler? EndSessionRequested;
     private readonly AppSettings _settings;
     private readonly FileLogger _logger;
     private readonly ICameraService _cameraService;
     private readonly ImageProcessingClient _imageClient;
     private readonly CameraFolderWatcher _watcher;
     private readonly PrintService _printService;
+    private readonly SessionFolderService _sessionFolderService;
     private readonly Channel<CameraPhotoReadyEventArgs> _processingQueue = Channel.CreateUnbounded<CameraPhotoReadyEventArgs>();
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _queueWorker;
@@ -34,10 +37,12 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string _cameraStatusMessage = "Đang chờ camera...";
     private bool _isBusy;
     private FilterOption? _selectedFilter;
+    private string _customerName = string.Empty;
 
     public MainViewModel()
     {
         _settings = AppSettings.Load(AppContext.BaseDirectory);
+        _sessionFolderService = new SessionFolderService();
         EnsureFolders();
 
         _logger = new FileLogger(_settings.LogFolder);
@@ -60,12 +65,17 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         _watcher.PhotoReady += HandlePhotoReadyAsync;
         _queueWorker = Task.Run(ProcessQueueAsync);
 
+        // Icon data: WPF geometry mini-language derived from Lucide icon SVGs (viewBox 0 0 24 24).
         Filters = new ObservableCollection<FilterOption>
         {
-            new("grayscale", "Grayscale", "Ảnh đen trắng rõ nét"),
-            new("blur", "Blur", "Làm mờ nhẹ để tạo hiệu ứng"),
-            new("vintage", "Vintage", "Tông cổ điển, ấm và mềm"),
-            new("beauty", "Beauty", "Làm mịn da cơ bản")
+            new("grayscale", "Grayscale", "Ảnh đen trắng rõ nét",
+                "M2.062 12.348 A1 1 0 0 1 2.062 11.652 A10.75 10.75 0 0 1 21.938 11.652 A1 1 0 0 1 21.938 12.348 A10.75 10.75 0 0 1 2.062 12.348 M9 12 A3 3 0 1 0 15 12 A3 3 0 1 0 9 12"),
+            new("blur", "Blur", "Làm mờ nhẹ để tạo hiệu ứng",
+                "M2 12 A10 10 0 1 0 22 12 A10 10 0 1 0 2 12 M14.31 8 L20.05 17.94 M9.69 8 L21.17 8 M7.38 12 L13.12 2.06 M9.69 16 L3.95 6.06 M14.31 16 L2.83 16 M20.1 12 L14.36 21.94"),
+            new("vintage", "Vintage", "Tông cổ điển, ấm và mềm",
+                "M5 3 H19 A2 2 0 0 1 21 5 V19 A2 2 0 0 1 19 21 H5 A2 2 0 0 1 3 5 V19 A2 2 0 0 1 5 21 M7 3 V21 M3 7.5 H7 M3 12 H21 M3 16.5 H7 M17 3 V21 M17 7.5 H21 M17 16.5 H21"),
+            new("beauty", "Beauty", "Làm mịn da cơ bản",
+                "M2 12 A10 10 0 1 0 22 12 A10 10 0 1 0 2 12 M8 14 C8 14 9.5 16 12 16 C14.5 16 16 14 16 14 M9 9 L9.01 9 M15 9 L15.01 9"),
         };
 
         _selectedFilter = Filters.FirstOrDefault(x => x.Key == "beauty") ?? Filters.FirstOrDefault();
@@ -91,6 +101,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         PrintFourCommand = new RelayCommand(_ => PrintFour());
         CaptureCommand = new AsyncRelayCommand(async _ => await CaptureCurrentFrameAsync().ConfigureAwait(false));
         ClearHistoryCommand = new RelayCommand(_ => ClearHistory());
+        EndSessionCommand = new RelayCommand(_ => {
+            _sessionFolderService.EndSession();
+            _logger.InfoAsync("Session ended.").ConfigureAwait(false);
+            EndSessionRequested?.Invoke(this, EventArgs.Empty);
+        });
     }
 
     public ObservableCollection<FilterOption> Filters { get; }
@@ -104,6 +119,16 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public ICommand CaptureCommand { get; }
 
     public ICommand ClearHistoryCommand { get; }
+
+    /// <summary>Closes the current session and returns to the customer input screen.</summary>
+    public ICommand EndSessionCommand { get; }
+
+    /// <summary>Gets or sets the name of the current customer displayed in the header.</summary>
+    public string CustomerName
+    {
+        get => _customerName;
+        set => SetProperty(ref _customerName, value);
+    }
 
     public ImageSource? CurrentCameraImage
     {
@@ -199,6 +224,15 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     public ObservableCollection<string> RecentProcessedImages { get; } = new();
 
+    public SessionFolderService SessionFolderService => _sessionFolderService;
+
+    public void StartSession(string customerName)
+    {
+        _sessionFolderService.StartNewSession(customerName);
+        CustomerName = customerName;
+        _logger.InfoAsync($"Session started: {customerName}").ConfigureAwait(false);
+    }
+
     public async Task InitializeAsync()
     {
         if (_isInitialized)
@@ -243,6 +277,14 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private async Task HandlePhotoReadyAsync(CameraPhotoReadyEventArgs args)
     {
         _lastCapturedImagePath = args.CopiedPath;
+
+        // Lưu vào session folder
+        var sessionOriginalPath = _sessionFolderService.SaveOriginalPhoto(args.CopiedPath);
+        if (!string.IsNullOrEmpty(sessionOriginalPath))
+        {
+            _logger.InfoAsync($"Original photo saved to session: {sessionOriginalPath}").ConfigureAwait(false);
+        }
+
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
             StatusMessage = $"Đã nhận ảnh mới: {Path.GetFileName(args.CopiedPath)}";
@@ -286,6 +328,18 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             });
 
             var outputPath = await _imageClient.ProcessAsync(photo.CopiedPath, filter, _settings.OutputFolder, _cts.Token).ConfigureAwait(false);
+
+            // Lưu ảnh đã filter vào session folder
+            if (SelectedFilter != null && !string.IsNullOrEmpty(_lastCapturedImagePath))
+            {
+                _sessionFolderService.SetCurrentFilter(SelectedFilter.Key);
+                var sessionFilteredPath = _sessionFolderService.SaveFilteredPhoto(outputPath, SelectedFilter.Key);
+                if (!string.IsNullOrEmpty(sessionFilteredPath))
+                {
+                    _logger.InfoAsync($"Filtered photo saved to session: {sessionFilteredPath}").ConfigureAwait(false);
+                }
+            }
+
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 CurrentProcessedImage = ImageSourceFactory.LoadFromFile(outputPath);
@@ -341,6 +395,20 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         {
             var capturedPath = await _cameraService.CaptureLatestFrameAsync(_settings.ProcessingFolder, _cts.Token).ConfigureAwait(false);
             _lastCapturedImagePath = capturedPath;
+
+            // Lưu vào session folder
+            var sessionOriginalPath = _sessionFolderService.SaveOriginalPhoto(capturedPath);
+            if (!string.IsNullOrEmpty(sessionOriginalPath))
+            {
+                _logger.InfoAsync($"Original photo saved to session: {sessionOriginalPath}").ConfigureAwait(false);
+            }
+
+            // Lưu filtered photo nếu có filter
+            if (SelectedFilter != null)
+            {
+                _sessionFolderService.SetCurrentFilter(SelectedFilter.Key);
+            }
+
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 CurrentCapturedImage = ImageSourceFactory.LoadFromFile(capturedPath);
