@@ -83,6 +83,11 @@ public sealed class AppSettings
     /// </summary>
     public AppLanguage Language { get; set; } = AppLanguage.Vietnamese;
 
+    /// <summary>
+    /// Enable fullscreen mode on startup.
+    /// </summary>
+    public bool EnableFullScreen { get; set; }
+
     public static AppSettings Load(string baseDirectory)
     {
         var settings = new AppSettings();
@@ -140,5 +145,6 @@ public sealed class AppSettings
         CameraDeviceIndex = other.CameraDeviceIndex;
         UiMode = other.UiMode;
         Language = other.Language;
+        EnableFullScreen = other.EnableFullScreen;
     }
 }

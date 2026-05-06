@@ -30,6 +30,13 @@ public partial class MainWindow : Window
 
         DataContext = ViewModel;
 
+        if (settings.EnableFullScreen)
+        {
+            WindowState = WindowState.Maximized;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+        }
+
         Loaded += MainWindow_Loaded;
         Closing += (_, _) =>
         {
@@ -76,7 +83,16 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            Close();
+            if (WindowStyle == WindowStyle.None)
+            {
+                WindowStyle = WindowStyle.SingleBorderWindow;
+                WindowState = WindowState.Normal;
+                ResizeMode = ResizeMode.CanResizeWithGrip;
+            }
+            else
+            {
+                Close();
+            }
         }
     }
 }

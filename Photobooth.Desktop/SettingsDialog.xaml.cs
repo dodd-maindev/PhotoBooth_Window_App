@@ -43,6 +43,9 @@ public partial class SettingsDialog : Window
         // Load Language
         LanguageComboBox.SelectedIndex = _settings.Language == AppLanguage.English ? 1 : 0;
 
+        // Load FullScreen
+        FullScreenCheckBox.IsChecked = _settings.EnableFullScreen;
+
         UpdateFieldsVisibility();
     }
 
@@ -153,6 +156,9 @@ public partial class SettingsDialog : Window
             else
                 _settings.Language = AppLanguage.Vietnamese;
         }
+
+        // Save FullScreen
+        _settings.EnableFullScreen = FullScreenCheckBox.IsChecked == true;
 
         try
         {

@@ -88,6 +88,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
             ["PrintSettings"] = new() { { AppLanguage.Vietnamese, "Cài đặt In Ảnh" }, { AppLanguage.English, "Print Settings" } },
             ["AutoPrint"] = new() { { AppLanguage.Vietnamese, "Tự động in sau chụp" }, { AppLanguage.English, "Auto print after capture" } },
             ["UiMode"] = new() { { AppLanguage.Vietnamese, "Chế độ hiển thị" }, { AppLanguage.English, "Display Mode" } },
+            ["FullScreen"] = new() { { AppLanguage.Vietnamese, "Toàn màn hình" }, { AppLanguage.English, "Full Screen" } },
             ["Landscape"] = new() { { AppLanguage.Vietnamese, "Ngang (Landscape)" }, { AppLanguage.English, "Landscape" } },
             ["Portrait"] = new() { { AppLanguage.Vietnamese, "Dọc (Portrait)" }, { AppLanguage.English, "Portrait" } },
             ["Save"] = new() { { AppLanguage.Vietnamese, "LƯU" }, { AppLanguage.English, "SAVE" } },
