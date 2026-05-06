@@ -267,7 +267,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Loc[BrandName]}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentGoldLight}"/>
                             <TextBlock Text=" - " FontSize="22" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="{Binding Loc[AppSubtitle]}" FontSize="22" FontWeight="Light" Foreground="{StaticResource AccentGoldLight}"/>
+                            <TextBlock Text="{Binding Loc[AppSubtitle]}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentGoldLight}"/>
                         </StackPanel>
                         <TextBlock Text="{Binding Loc[Address]}" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
                     </StackPanel>
@@ -494,7 +494,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Loc[BrandName]}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource AccentGoldLight}"/>
                             <TextBlock Text=" - " FontSize="16" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="{Binding Loc[AppSubtitle]}" FontSize="16" FontWeight="Light" Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="{Binding Loc[AppSubtitle]}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource AccentGoldLight}"/>
                         </StackPanel>
                         <TextBlock Text="{Binding Loc[Address]}" FontSize="9" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
