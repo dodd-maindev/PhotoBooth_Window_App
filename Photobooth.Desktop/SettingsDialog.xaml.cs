@@ -37,6 +37,12 @@ public partial class SettingsDialog : Window
 
         AutoPrintCheckBox.IsChecked = _settings.EnableAutoPrint;
 
+        // Load UiMode
+        UiModeComboBox.SelectedIndex = _settings.UiMode == UiMode.Portrait ? 1 : 0;
+
+        // Load Language
+        LanguageComboBox.SelectedIndex = _settings.Language == AppLanguage.English ? 1 : 0;
+
         UpdateFieldsVisibility();
     }
 
@@ -129,6 +135,24 @@ public partial class SettingsDialog : Window
         }
 
         _settings.EnableAutoPrint = AutoPrintCheckBox.IsChecked == true;
+
+        // Save UiMode
+        if (UiModeComboBox.SelectedItem is ComboBoxItem uiItem)
+        {
+            if (uiItem.Tag is string uiTag && uiTag == "Portrait")
+                _settings.UiMode = UiMode.Portrait;
+            else
+                _settings.UiMode = UiMode.Landscape;
+        }
+
+        // Save Language
+        if (LanguageComboBox.SelectedItem is ComboBoxItem langItem)
+        {
+            if (langItem.Tag is string langTag && langTag == "English")
+                _settings.Language = AppLanguage.English;
+            else
+                _settings.Language = AppLanguage.Vietnamese;
+        }
 
         try
         {

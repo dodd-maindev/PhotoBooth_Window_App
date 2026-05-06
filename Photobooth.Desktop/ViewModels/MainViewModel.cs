@@ -39,9 +39,20 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private FilterOption? _selectedFilter;
     private string _customerName = string.Empty;
 
-    public MainViewModel()
+    /// <summary>Stores the UI mode setting for the window to read.</summary>
+    public UiMode UiModeSetting { get; private set; }
+
+    /// <summary>Provides access to localization for data binding.</summary>
+    public LocalizationService Loc => LocalizationService.Instance;
+
+    public MainViewModel(AppSettings settings)
     {
-        _settings = AppSettings.Load(AppContext.BaseDirectory);
+        _settings = settings;
+        UiModeSetting = _settings.UiMode;
+
+        // Initialize localization service with saved language
+        LocalizationService.Instance.CurrentLanguage = _settings.Language;
+
         _sessionFolderService = new SessionFolderService();
         EnsureFolders();
 
@@ -226,6 +237,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     public SessionFolderService SessionFolderService => _sessionFolderService;
 
+    /// <summary>Gets the current UI mode (Landscape or Portrait) from settings.</summary>
+    public UiMode CurrentUiMode => _settings.UiMode;
+
     public void StartSession(string customerName)
     {
         _sessionFolderService.StartNewSession(customerName);
@@ -244,7 +258,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         await StartCameraPreviewAsync().ConfigureAwait(false);
         _watcher.Start();
         await _logger.InfoAsync("Photobooth desktop started.").ConfigureAwait(false);
-        UpdateStatus("Đang theo dõi thư mục camera và live camera feed...");
+        UpdateStatus("Sẵn sàng.");
     }
 
     private async Task StartCameraPreviewAsync()

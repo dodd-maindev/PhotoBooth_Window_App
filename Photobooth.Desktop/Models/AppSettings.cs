@@ -10,6 +10,18 @@ public enum CameraType
     Fuji = 1
 }
 
+public enum UiMode
+{
+    Landscape = 0,
+    Portrait = 1
+}
+
+public enum AppLanguage
+{
+    Vietnamese = 0,
+    English = 1
+}
+
 public sealed class AppSettings
 {
     public string WatchFolder { get; set; } = @"C:\photos";
@@ -60,6 +72,16 @@ public sealed class AppSettings
     /// -1 = auto-detect.
     /// </summary>
     public int CameraDeviceIndex { get; set; } = -1;
+
+    /// <summary>
+    /// UI layout mode: Landscape (0) or Portrait (1).
+    /// </summary>
+    public UiMode UiMode { get; set; } = UiMode.Landscape;
+
+    /// <summary>
+    /// Application language: Vietnamese (0) or English (1).
+    /// </summary>
+    public AppLanguage Language { get; set; } = AppLanguage.Vietnamese;
 
     public static AppSettings Load(string baseDirectory)
     {
@@ -116,5 +138,7 @@ public sealed class AppSettings
         LiveWebcamPreferredName = other.LiveWebcamPreferredName;
         PreferredCameraName = other.PreferredCameraName;
         CameraDeviceIndex = other.CameraDeviceIndex;
+        UiMode = other.UiMode;
+        Language = other.Language;
     }
 }

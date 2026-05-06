@@ -24,7 +24,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        ViewModel = new MainViewModel();
+        ViewModel = new MainViewModel(settings);
         ViewModel.StartSession(customerName);
         ViewModel.EndSessionRequested += OnViewModelEndSessionRequested;
 

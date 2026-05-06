@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Photobooth.Desktop.Services"
         mc:Ignorable="d"
         Title="Joli Films - Thông tin khách hàng"
         Icon="pack://application:,,,/asset/Logo/joli-film-logo.png"
@@ -116,7 +117,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <Path Data="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
                                       Fill="{StaticResource TextMuted}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,6,0"/>
-                                <TextBlock Text="Cài đặt" VerticalAlignment="Center"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -219,10 +220,10 @@
                             <TextBlock Text="JOLI FILM" FontSize="18" FontWeight="Bold"
                                        Foreground="{StaticResource AccentGoldLight}"/>
                             <TextBlock Text=" - " FontSize="18" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="SELFPHOTO" FontSize="18" FontWeight="Light"
-                                       Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="SELFBOOTH" FontSize="18" FontWeight="Bold"
+                                       Foreground="{StaticResource AccentGoldLight}"/>
                         </StackPanel>
-                        <TextBlock Text="34 ngõ 58 Đào Tấn, Ba Đình, Hà Nội"
+                        <TextBlock x:Name="AddressText"
                                    FontSize="10" Foreground="{StaticResource TextSecondary}"
                                    Margin="0,4,0,0"/>
                     </StackPanel>
@@ -232,7 +233,9 @@
                             x:Name="SettingsButton"
                             Style="{StaticResource SettingsButtonStyle}"
                             Click="SettingsButton_Click"
-                            VerticalAlignment="Top"/>
+                            VerticalAlignment="Top">
+                        <TextBlock x:Name="SettingsButtonText" VerticalAlignment="Center"/>
+                    </Button>
                 </Grid>
 
                 <!-- Separator -->
@@ -240,11 +243,11 @@
 
                 <!-- Welcome Text -->
                 <StackPanel Grid.Row="2" Margin="0,0,0,14">
-                    <TextBlock Text="Chào mừng đến với Joli Films!"
+                    <TextBlock x:Name="WelcomeTitleText"
                                FontSize="20" FontWeight="Bold"
                                Foreground="{StaticResource AccentGoldLight}"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="Nhập tên khách hàng để bắt đầu"
+                    <TextBlock x:Name="WelcomeSubtitleText"
                                FontSize="12" Foreground="{StaticResource TextSecondary}"
                                HorizontalAlignment="Center"
                                Margin="0,4,0,0"/>
@@ -252,7 +255,7 @@
 
                 <!-- Customer Name Input -->
                 <StackPanel Grid.Row="3">
-                    <TextBlock Text="Tên khách hàng:"
+                    <TextBlock x:Name="NameLabelText"
                                FontSize="12" Foreground="{StaticResource TextMuted}"
                                Margin="0,0,0,6"/>
                     <TextBox x:Name="CustomerNameTextBox"
@@ -278,7 +281,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Path Data="M12 15.2c1.4 0 2.6-1.2 2.6-2.6s-1.2-2.6-2.6-2.6-2.6 1.2-2.6 2.6 1.2 2.6 2.6 2.6zm9-8.2h-3.2l-1.5-1.5h-9l-1.5 1.5H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"
                               Fill="Black" Width="18" Height="18" Stretch="Uniform" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="BẮT ĐẦU CHỤP ẢNH" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Foreground="Black"/>
+                        <TextBlock x:Name="StartButtonText" VerticalAlignment="Center" FontWeight="Bold" FontSize="14" Foreground="Black"/>
                     </StackPanel>
                 </Button>
             </Grid>

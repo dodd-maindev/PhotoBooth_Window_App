@@ -5,13 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Photobooth.Desktop"
         xmlns:converters="clr-namespace:Photobooth.Desktop.Converters"
+        xmlns:models="clr-namespace:Photobooth.Desktop.Models"
         mc:Ignorable="d"
-        Title="Joli Films - Chọn template"
+        Title="Joli Films - Photobooth"
         Icon="pack://application:,,,/asset/Logo/joli-film-logo.png"
-        Width="1600"
-        Height="1000"
-        MinWidth="1280"
-        MinHeight="800"
         WindowStartupLocation="CenterScreen"
         WindowState="Normal"
         WindowStyle="SingleBorderWindow"
@@ -20,27 +17,33 @@
         FontFamily="Segoe UI"
         KeyDown="Window_KeyDown">
     <Window.Resources>
+        <!-- Converters -->
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:FilterEqualityConverter x:Key="FilterEqualityConverter"/>
+        <converters:BoolToVisibilityInverseConverter x:Key="BoolToVisibilityInverseConverter"/>
+        <converters:UiModeToVisibilityConverter x:Key="UiModeToVisibilityConverter"/>
+
         <!-- Color Palette -->
         <SolidColorBrush x:Key="BackgroundPrimary" Color="#0A0406"/>
         <SolidColorBrush x:Key="BackgroundSecondary" Color="#1A0A0D"/>
         <SolidColorBrush x:Key="BackgroundCard" Color="#2A1215"/>
         <SolidColorBrush x:Key="BackgroundPanel" Color="#1E0C0F"/>
-        
+
         <SolidColorBrush x:Key="AccentGold" Color="#FFD700"/>
         <SolidColorBrush x:Key="AccentGoldLight" Color="#FFED8A"/>
         <SolidColorBrush x:Key="AccentGoldDark" Color="#B8860B"/>
         <SolidColorBrush x:Key="AccentGoldMuted" Color="#8B7355"/>
-        
+
         <SolidColorBrush x:Key="GlowGold" Color="#FFD700"/>
         <SolidColorBrush x:Key="GlowGoldSoft" Color="#AA8B00"/>
-        
+
         <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="TextSecondary" Color="#C9B896"/>
         <SolidColorBrush x:Key="TextMuted" Color="#8B7355"/>
-        
+
         <SolidColorBrush x:Key="BorderGold" Color="#4A3520"/>
         <SolidColorBrush x:Key="BorderGoldLight" Color="#6B5A3A"/>
-        
+
         <!-- Gradient Brushes -->
         <LinearGradientBrush x:Key="BackgroundGradient" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#0A0406" Offset="0.0"/>
@@ -52,17 +55,6 @@
             <GradientStop Color="#150A0D" Offset="0.0"/>
             <GradientStop Color="#1E1013" Offset="0.5"/>
             <GradientStop Color="#150A0D" Offset="1.0"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="GoldGradient" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#B8860B" Offset="0.0"/>
-            <GradientStop Color="#FFD700" Offset="0.5"/>
-            <GradientStop Color="#B8860B" Offset="1.0"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="GoldGradientVertical" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#FFD700" Offset="0.0"/>
-            <GradientStop Color="#B8860B" Offset="1.0"/>
         </LinearGradientBrush>
 
         <LinearGradientBrush x:Key="ButtonGoldGradient" StartPoint="0,0" EndPoint="0,1">
@@ -78,38 +70,7 @@
         </LinearGradientBrush>
 
         <!-- Glow Effects -->
-        <DropShadowEffect x:Key="GoldGlowEffect" 
-                          Color="#FFD700" 
-                          BlurRadius="20" 
-                          ShadowDepth="0" 
-                          Direction="0"
-                          Opacity="0.6"/>
-
-        <DropShadowEffect x:Key="GoldGlowEffectSoft" 
-                          Color="#FFD700" 
-                          BlurRadius="10" 
-                          ShadowDepth="0" 
-                          Direction="0"
-                          Opacity="0.4"/>
-
-        <DropShadowEffect x:Key="GoldGlowEffectIntense" 
-                          Color="#FFD700" 
-                          BlurRadius="30" 
-                          ShadowDepth="0" 
-                          Direction="0"
-                          Opacity="0.8"/>
-
-        <DropShadowEffect x:Key="InnerShadowEffect" 
-                          Color="#000000" 
-                          BlurRadius="8" 
-                          ShadowDepth="2" 
-                          Direction="270"
-                          Opacity="0.5"/>
-
-        <!-- Converters -->
-        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-        <converters:FilterEqualityConverter x:Key="FilterEqualityConverter"/>
-        <converters:BoolToVisibilityInverseConverter x:Key="BoolToVisibilityInverseConverter"/>
+        <DropShadowEffect x:Key="GoldGlowEffectSoft" Color="#FFD700" BlurRadius="10" ShadowDepth="0" Direction="0" Opacity="0.4"/>
 
         <!-- Base TextBlock Style -->
         <Style TargetType="TextBlock">
@@ -173,12 +134,6 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
-
-        <!-- Selected Filter Button Style -->
-        <Style x:Key="FilterButtonSelectedStyle" TargetType="Button" BasedOn="{StaticResource FilterButtonStyle}">
-            <Setter Property="Background" Value="#2A1A1D"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentGold}"/>
         </Style>
 
         <!-- Action Button Style -->
@@ -271,47 +226,32 @@
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                              From="0" To="360" Duration="0:0:1.1"/>
         </Storyboard>
-
-        <!-- Pulse Animation for Active Elements -->
-        <Storyboard x:Key="PulseAnimation" RepeatBehavior="Forever">
-            <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                             From="0.6" To="1.0" Duration="0:0:1" AutoReverse="True"/>
-        </Storyboard>
     </Window.Resources>
 
     <!-- Main Background -->
     <Grid Background="{StaticResource BackgroundGradient}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <!-- ==================== LANDSCAPE LAYOUT ==================== -->
+        <Grid x:Name="LandscapeLayout"
+              Visibility="{Binding UiModeSetting, Converter={StaticResource UiModeToVisibilityConverter}, ConverterParameter=Landscape}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- ==================== HEADER ==================== -->
-        <Border Grid.Row="0" Background="{StaticResource HeaderGradient}" 
-                BorderBrush="{StaticResource BorderGold}" BorderThickness="0,0,0,2"
-                Padding="20,12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Logo Section -->
-                <Grid Grid.Column="0">
+            <!-- HEADER -->
+            <Border Grid.Row="0" Background="{StaticResource HeaderGradient}"
+                    BorderBrush="{StaticResource BorderGold}" BorderThickness="0,0,0,2"
+                    Padding="20,12">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Logo Container with Glow -->
-                    <Border Grid.Column="0"
-                            Width="70" Height="70"
-                            Margin="0,0,16,0"
-                            CornerRadius="16"
-                            BorderBrush="{StaticResource AccentGold}"
-                            BorderThickness="2"
+                    <!-- Logo -->
+                    <Border Grid.Column="0" Width="70" Height="70" Margin="0,0,16,0" CornerRadius="16"
                             Effect="{StaticResource GoldGlowEffectSoft}">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -325,107 +265,269 @@
                     <!-- Brand Info -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="JOLI FILM" FontSize="22" FontWeight="Bold" 
-                                       Foreground="{StaticResource AccentGoldLight}"/>
+                            <TextBlock Text="{Binding Loc[BrandName]}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentGoldLight}"/>
                             <TextBlock Text=" - " FontSize="22" Foreground="{StaticResource TextMuted}"/>
-                            <TextBlock Text="SELFPHOTO BOOTH" FontSize="22" FontWeight="Light" 
-                                       Foreground="{StaticResource TextPrimary}"/>
+                            <TextBlock Text="{Binding Loc[AppSubtitle]}" FontSize="22" FontWeight="Light" Foreground="{StaticResource AccentGoldLight}"/>
                         </StackPanel>
-                        <TextBlock Text="34 ngõ 58 Đào Tấn, Ba Đình, Hà Nội" 
-                                   FontSize="11" Foreground="{StaticResource TextSecondary}"
-                                   Margin="0,4,0,0"/>
+                        <TextBlock Text="{Binding Loc[Address]}" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <!-- Right Info -->
+                    <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Loc[Customer]}" FontSize="13" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text=": " FontSize="13" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{Binding CustomerName}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentGoldLight}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                            <TextBlock Text="{Binding Loc[Filter]}" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text=": " FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{Binding SelectedFilter.DisplayName}" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                            <Image Source="asset/Right_Icon/Right_Icon.png" Width="70" Height="70" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
+            </Border>
 
-                <!-- Right Info Section -->
-                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <TextBlock Text="Khách: " FontSize="13" Foreground="{StaticResource TextMuted}"/>
-                        <TextBlock Text="{Binding CustomerName}" FontSize="13" FontWeight="SemiBold" 
-                                   Foreground="{StaticResource AccentGoldLight}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                        <TextBlock Text="Filter: " FontSize="11" Foreground="{StaticResource TextMuted}"/>
-                        <TextBlock Text="{Binding SelectedFilter.DisplayName}" FontSize="11" 
-                                   Foreground="{StaticResource TextSecondary}"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                        <!-- Camera Status Indicator -->
-                        <Ellipse Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
-                            <Ellipse.Style>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="#666666"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CameraStatusMessage}" Value="Camera live view đang chạy.">
-                                            <Setter Property="Fill" Value="#4ADE80"/>
-                                            <Setter Property="Effect">
-                                                <Setter.Value>
-                                                    <DropShadowEffect Color="#4ADE80" BlurRadius="6" ShadowDepth="0"/>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock Text="{Binding CameraStatusMessage}" FontSize="10" 
-                                   Foreground="{StaticResource TextMuted}"/>
-                    </StackPanel>
-                </StackPanel>
+            <!-- MAIN CONTENT -->
+            <Grid Grid.Row="1" Margin="16,12,16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.6*"/>
+                    <ColumnDefinition Width="1.6*"/>
+                    <ColumnDefinition Width="0.5*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Camera Preview -->
+                <Border Grid.Column="0" Style="{StaticResource GlowingCardBorder}" Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Loc[LivePreview]}" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="{Binding Loc[LivePreviewDesc]}" Style="{StaticResource CaptionTextStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                        <Border Grid.Row="1" Background="#050203" CornerRadius="8" BorderBrush="{StaticResource BorderGoldLight}" BorderThickness="1" ClipToBounds="True">
+                            <Grid>
+                                <Image Source="{Binding CurrentCameraImage}" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Border CornerRadius="8" BorderThickness="3" Opacity="0.3">
+                                    <Border.BorderBrush>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#FFD700" Offset="0"/>
+                                            <GradientStop Color="#FFA500" Offset="0.5"/>
+                                            <GradientStop Color="#FFD700" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.BorderBrush>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Processed Preview -->
+                <Border Grid.Column="1" Style="{StaticResource GlowingCardBorder}" Margin="10,0,10,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Loc[ProcessedPreview]}" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="{Binding Loc[ProcessedPreviewDesc]}" Style="{StaticResource CaptionTextStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                        <Border Grid.Row="1" Background="#050203" CornerRadius="8" BorderBrush="{StaticResource BorderGoldLight}" BorderThickness="1" ClipToBounds="True">
+                            <Grid>
+                                <Image Source="{Binding CurrentProcessedImage}" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <Grid Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}" Background="#CC0A0406">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Grid Width="70" Height="70">
+                                            <Ellipse Stroke="{StaticResource AccentGoldDark}" StrokeThickness="4" Opacity="0.3"/>
+                                            <Ellipse x:Name="FilterSpinner" Stroke="{StaticResource AccentGoldLight}" StrokeThickness="4" StrokeDashArray="1.5 1" RenderTransformOrigin="0.5,0.5">
+                                                <Ellipse.RenderTransform><RotateTransform Angle="0"/></Ellipse.RenderTransform>
+                                            </Ellipse>
+                                        </Grid>
+                                        <TextBlock Text="Đang xử lý filter..." FontSize="13" Foreground="{StaticResource AccentGoldLight}" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Filter Panel -->
+                <Border Grid.Column="2" Style="{StaticResource GlowingCardBorder}" Margin="10,0,0,0">
+                    <DockPanel LastChildFill="True">
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Loc[Filters]}" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="{Binding Loc[FilterDesc]}" Style="{StaticResource CaptionTextStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Filters}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.SelectFilterCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource FilterButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Value="True">
+                                                            <DataTrigger.Binding>
+                                                                <MultiBinding Converter="{StaticResource FilterEqualityConverter}">
+                                                                    <Binding Path="DataContext.SelectedFilter" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                                    <Binding/>
+                                                                </MultiBinding>
+                                                            </DataTrigger.Binding>
+                                                            <Setter Property="BorderBrush" Value="{StaticResource AccentGold}"/>
+                                                            <Setter Property="Background" Value="#2A1A1D"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Width="36" Height="36" Background="{StaticResource BackgroundPanel}" CornerRadius="6" Margin="0,0,12,0">
+                                                    <Path Data="{Binding IconData}" Fill="{StaticResource AccentGoldMuted}" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Description}" Style="{StaticResource CaptionTextStyle}" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
             </Grid>
-        </Border>
 
-        <!-- ==================== MAIN CONTENT ==================== -->
-        <Grid Grid.Row="1" Margin="16,12,16,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.6*"/>
-                <ColumnDefinition Width="1.6*"/>
-                <ColumnDefinition Width="0.5*"/>
-            </Grid.ColumnDefinitions>
+            <!-- FOOTER -->
+            <Border Grid.Row="2" Background="{StaticResource HeaderGradient}" BorderBrush="{StaticResource BorderGold}" BorderThickness="0,2,0,0" Padding="16,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- Camera Preview Panel -->
-            <Border Grid.Column="0" Style="{StaticResource GlowingCardBorder}" Margin="0,0,10,0">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#1A1015" Offset="0"/>
-                        <GradientStop Color="#120810" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="10" Height="10" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{StaticResource AccentGoldMuted}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                <Setter Property="Fill" Value="{StaticResource AccentGold}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="" FontSize="13" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding LastErrorMessage}" Style="{StaticResource CaptionTextStyle}" Foreground="#FF6B6B" Margin="20,4,0,0" Visibility="{Binding LastErrorMessage, Converter={StaticResource BoolToVisibilityInverseConverter}}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding CaptureCommand}" Margin="0,0,10,0" Padding="20,10">
+                            <TextBlock Text="{Binding Loc[Capture]}"/>
+                        </Button>
+                        <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding ClearHistoryCommand}" Margin="0,0,10,0" Padding="14,10">
+                            <TextBlock Text="{Binding Loc[Delete]}"/>
+                        </Button>
+                        <Button Style="{StaticResource EndSessionButtonStyle}" Command="{Binding EndSessionCommand}" Padding="18,10">
+                            <TextBlock Text="{Binding Loc[EndSession]}"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ==================== PORTRAIT LAYOUT ==================== -->
+        <Grid x:Name="PortraitLayout"
+              Visibility="{Binding UiModeSetting, Converter={StaticResource UiModeToVisibilityConverter}, ConverterParameter=Portrait}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="1.6*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER (Compact) -->
+            <Border Grid.Row="0" Background="{StaticResource HeaderGradient}"
+                    BorderBrush="{StaticResource BorderGold}" BorderThickness="0,0,0,2"
+                    Padding="16,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Logo (Smaller) -->
+                    <Border Grid.Column="0" Width="45" Height="45" Margin="0,0,12,0" CornerRadius="10"
+                            Effect="{StaticResource GoldGlowEffectSoft}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#1A1015" Offset="0"/>
+                                <GradientStop Color="#0A0406" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Image Source="asset/Logo/joli-film-logo.png" Stretch="Fill"/>
+                    </Border>
+
+                    <!-- Brand Info (Compact) -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Loc[BrandName]}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource AccentGoldLight}"/>
+                            <TextBlock Text=" - " FontSize="16" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{Binding Loc[AppSubtitle]}" FontSize="16" FontWeight="Light" Foreground="{StaticResource TextPrimary}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Loc[Address]}" FontSize="9" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <TextBlock Text="{Binding CustomerName}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentGoldLight}"/>
+                            <TextBlock Text=" | " FontSize="9" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{Binding Loc[Filter]}" FontSize="9" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text=": " FontSize="9" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="{Binding SelectedFilter.DisplayName}" FontSize="9" Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Camera Status (Compact) -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="asset/Right_Icon/Right_Icon.png" Width="65" Height="65" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- LIVE PREVIEW (Large Area) -->
+            <Border Grid.Row="1" Margin="12,10,12,6" Background="{StaticResource BackgroundCard}" BorderBrush="{StaticResource CardBorderGradient}" BorderThickness="2" CornerRadius="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Section Header -->
-                    <Grid Grid.Row="0" Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <StackPanel>
-                            <TextBlock Text="Live Camera Preview" Style="{StaticResource SectionTitleStyle}"/>
-                            <TextBlock Text="Hình ảnh trực tiếp từ máy ảnh" Style="{StaticResource CaptionTextStyle}"/>
-                        </StackPanel>
-                        
-                        <!-- Camera Icon -->
-                        <Border Grid.Column="1" Background="{StaticResource BackgroundPanel}" 
-                                CornerRadius="6" Padding="8,6" BorderBrush="{StaticResource BorderGold}" BorderThickness="1">
-                            <Path Data="M12 15.2c1.4 0 2.6-1.2 2.6-2.6s-1.2-2.6-2.6-2.6-2.6 1.2-2.6 2.6 1.2 2.6 2.6 2.6zm9-8.2h-3.2l-1.5-1.5h-9l-1.5 1.5H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 11.5c-3.9 0-7-3.1-7-7s3.1-7 7-7 7 3.1 7 7-3.1 7-7 7z" 
-                                  Fill="{StaticResource AccentGoldMuted}" Width="18" Height="18" Stretch="Uniform"/>
-                        </Border>
-                    </Grid>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="12,10,12,8">
+                        <TextBlock Text="{Binding Loc[LivePreviewPortrait]}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentGoldLight}" VerticalAlignment="Center"/>
+                    </StackPanel>
 
-                    <!-- Camera Preview Area -->
-                    <Border Grid.Row="1" Background="#050203" CornerRadius="8" 
-                            BorderBrush="{StaticResource BorderGoldLight}" BorderThickness="1"
-                            ClipToBounds="True">
+                    <Border Grid.Row="1" Background="#050203" CornerRadius="8" BorderBrush="{StaticResource BorderGoldLight}" BorderThickness="1" ClipToBounds="True" Margin="8,0,8,8">
                         <Grid>
-                            <Image Source="{Binding CurrentCameraImage}" Stretch="Uniform" 
-                                   SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            
-                            <!-- Camera Frame Overlay -->
+                            <Image Source="{Binding CurrentCameraImage}" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
                             <Border CornerRadius="8" BorderThickness="3" Opacity="0.3">
                                 <Border.BorderBrush>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -440,80 +542,30 @@
                 </Grid>
             </Border>
 
-            <!-- Processed Preview Panel -->
-            <Border Grid.Column="1" Style="{StaticResource GlowingCardBorder}" Margin="10,0,10,0">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#1A1015" Offset="0"/>
-                        <GradientStop Color="#120810" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
+            <!-- CAPTURED PHOTO (Medium Area) -->
+            <Border Grid.Row="2" Margin="12,6,12,6" Background="{StaticResource BackgroundCard}" BorderBrush="{StaticResource CardBorderGradient}" BorderThickness="2" CornerRadius="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Section Header -->
-                    <Grid Grid.Row="0" Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <StackPanel>
-                            <TextBlock Text="Processed Preview" Style="{StaticResource SectionTitleStyle}"/>
-                            <TextBlock Text="Ảnh đã áp dụng filter từ Python" Style="{StaticResource CaptionTextStyle}"/>
-                        </StackPanel>
-                        
-                        <!-- Magic Wand Icon -->
-                        <Border Grid.Column="1" Background="{StaticResource BackgroundPanel}" 
-                                CornerRadius="6" Padding="8,6" BorderBrush="{StaticResource BorderGold}" BorderThickness="1">
-                            <Path Data="M7.5 5.6L5 7l1.4-2.5L5 2l2.5 1.4L10 2 8.6 4.5 10 7 7.5 5.6zm12 9.8L22 14l-1.4 2.5L22 19l-2.5-1.4L17 19l1.4-2.5L17 14l2.5 1.4zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5L22 2zM14.37 5.76L13 4.35l-1.37 1.41-1.41 1.38 1.38 1.41 1.4 1.39 1.4-1.39 1.39-1.41-1.39-1.38-1.41-1.39zM2 22l5-5 3 3 5-5V22H2z" 
-                                  Fill="{StaticResource AccentGoldMuted}" Width="18" Height="18" Stretch="Uniform"/>
-                        </Border>
-                    </Grid>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="12,10,12,8">
+                        <TextBlock Text="{Binding Loc[CapturedPhoto]}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentGoldLight}" VerticalAlignment="Center"/>
+                    </StackPanel>
 
-                    <!-- Processed Image Area -->
-                    <Border Grid.Row="1" Background="#050203" CornerRadius="8" 
-                            BorderBrush="{StaticResource BorderGoldLight}" BorderThickness="1"
-                            ClipToBounds="True">
+                    <Border Grid.Row="1" Background="#050203" CornerRadius="8" BorderBrush="{StaticResource BorderGoldLight}" BorderThickness="1" ClipToBounds="True" Margin="8,0,8,8">
                         <Grid>
-                            <Image Source="{Binding CurrentProcessedImage}" Stretch="Uniform" 
-                                   SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            
-                            <!-- Loading Overlay -->
-                            <Grid x:Name="FilterLoadingOverlay"
-                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"
-                                  Background="#CC0A0406">
-                                <Grid.Triggers>
-                                    <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                                        <BeginStoryboard Storyboard="{StaticResource FilterSpinnerStoryboard}"/>
-                                    </EventTrigger>
-                                </Grid.Triggers>
+                            <Image Source="{Binding CurrentProcessedImage}" Stretch="Uniform" SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Grid Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}" Background="#CC0A0406">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Grid Width="70" Height="70" HorizontalAlignment="Center">
-                                        <Ellipse Stroke="{StaticResource AccentGoldDark}" StrokeThickness="4" Opacity="0.3"/>
-                                        <Ellipse x:Name="FilterSpinner"
-                                                 Stroke="{StaticResource AccentGoldLight}"
-                                                 StrokeThickness="4"
-                                                 StrokeDashArray="1.5 1"
-                                                 StrokeStartLineCap="Round"
-                                                 StrokeEndLineCap="Round"
-                                                 RenderTransformOrigin="0.5,0.5">
-                                            <Ellipse.RenderTransform>
-                                                <RotateTransform Angle="0"/>
-                                            </Ellipse.RenderTransform>
-                                            <Ellipse.Effect>
-                                                <DropShadowEffect Color="#FFD700" BlurRadius="10" ShadowDepth="0" Opacity="0.6"/>
-                                            </Ellipse.Effect>
+                                    <Grid Width="50" Height="50">
+                                        <Ellipse Stroke="{StaticResource AccentGoldDark}" StrokeThickness="3" Opacity="0.3"/>
+                                        <Ellipse Stroke="{StaticResource AccentGoldLight}" StrokeThickness="3" StrokeDashArray="1.5 1" RenderTransformOrigin="0.5,0.5">
+                                            <Ellipse.RenderTransform><RotateTransform Angle="0"/></Ellipse.RenderTransform>
                                         </Ellipse>
                                     </Grid>
-                                    <TextBlock Text="Đang xử lý filter..."
-                                               FontSize="13"
-                                               Foreground="{StaticResource AccentGoldLight}"
-                                               HorizontalAlignment="Center"
-                                               Margin="0,14,0,0"/>
+                                    <TextBlock Text="{Binding Loc[ProcessingFilter]}" FontSize="11" Foreground="{StaticResource AccentGoldLight}" HorizontalAlignment="Center" Margin="0,10,0,0"/>
                                 </StackPanel>
                             </Grid>
                         </Grid>
@@ -521,184 +573,95 @@
                 </Grid>
             </Border>
 
-            <!-- Filter Panel -->
-            <Border Grid.Column="2" Style="{StaticResource GlowingCardBorder}" Margin="10,0,0,0">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#150A0D" Offset="0"/>
-                        <GradientStop Color="#0F0608" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <DockPanel LastChildFill="True">
-                    <!-- Section Header -->
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <StackPanel>
-                            <TextBlock Text="Filters" Style="{StaticResource SectionTitleStyle}"/>
-                            <TextBlock Text="Chọn filter cho ảnh chụp" Style="{StaticResource CaptionTextStyle}"/>
-                        </StackPanel>
-                        
-                        <!-- Filter Icon -->
-                        <Border Grid.Column="1" Background="{StaticResource BackgroundPanel}" 
-                                CornerRadius="6" Padding="8,6" BorderBrush="{StaticResource BorderGold}" BorderThickness="1">
-                            <Path Data="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 12v-2h-4v2h4zm0-6v-2H3v2h10zm-4 4H3v2h6v-2zm8-8v2h4V7h-4zm0 10v2h4v-2h-4z" 
-                                  Fill="{StaticResource AccentGoldMuted}" Width="18" Height="18" Stretch="Uniform"/>
-                        </Border>
-                    </Grid>
+            <!-- FILTER BUTTONS (Compact Row) -->
+            <Border Grid.Row="3" Margin="12,6,12,6" Background="{StaticResource BackgroundCard}" BorderBrush="{StaticResource CardBorderGradient}" BorderThickness="2" CornerRadius="12" Padding="10,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <!-- Filter List -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding Filters}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Width="Auto" Command="{Binding DataContext.SelectFilterCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}">
-                                        <Button.Style>
-                                            <Style TargetType="Button" BasedOn="{StaticResource FilterButtonStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Value="True">
-                                                        <DataTrigger.Binding>
-                                                            <MultiBinding Converter="{StaticResource FilterEqualityConverter}">
-                                                                <Binding Path="DataContext.SelectedFilter" RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                                                <Binding/>
-                                                            </MultiBinding>
-                                                        </DataTrigger.Binding>
-                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentGold}"/>
-                                                        <Setter Property="Background" Value="#2A1A1D"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            
-                                            <!-- Filter Icon -->
-                                            <Border Grid.Column="0" Width="36" Height="36" 
-                                                    Background="{StaticResource BackgroundPanel}" 
-                                                    CornerRadius="6" Margin="0,0,12,0">
-                                                <Path Data="{Binding IconData}" 
-                                                      Fill="{StaticResource AccentGoldMuted}" 
-                                                      Width="20" Height="20" 
-                                                      Stretch="Uniform"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"/>
-                                            </Border>
-                                            
-                                            <!-- Filter Info -->
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding DisplayName}" FontSize="14" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Description}" Style="{StaticResource CaptionTextStyle}" Margin="0,3,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="4,0,0,8">
+                        <TextBlock Text="{Binding Loc[SelectFilter]}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentGoldLight}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Filters}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.SelectFilterCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" MinWidth="90" Margin="0,0,8,8">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource FilterButtonStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Value="True">
+                                                    <DataTrigger.Binding>
+                                                        <MultiBinding Converter="{StaticResource FilterEqualityConverter}">
+                                                            <Binding Path="DataContext.SelectedFilter" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                            <Binding/>
+                                                        </MultiBinding>
+                                                    </DataTrigger.Binding>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentGold}"/>
+                                                    <Setter Property="Background" Value="#2A1A1D"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{Binding IconData}" Fill="{StaticResource AccentGoldMuted}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
             </Border>
-        </Grid>
 
-        <!-- ==================== FOOTER ==================== -->
-        <Border Grid.Row="2" Background="{StaticResource HeaderGradient}" 
-                BorderBrush="{StaticResource BorderGold}" BorderThickness="0,2,0,0"
-                Padding="16,12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <!-- ACTION BUTTONS (Footer) -->
+            <Border Grid.Row="4" Background="{StaticResource HeaderGradient}" BorderBrush="{StaticResource BorderGold}" BorderThickness="0,2,0,0" Padding="12,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <!-- Status Section -->
-                <StackPanel VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <!-- Status Indicator -->
-                        <Ellipse Width="10" Height="10" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                        <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
                                     <Setter Property="Fill" Value="{StaticResource AccentGoldMuted}"/>
-                                    <Setter Property="Effect">
-                                        <Setter.Value>
-                                            <DropShadowEffect Color="#FFD700" BlurRadius="6" ShadowDepth="0"/>
-                                        </Setter.Value>
-                                    </Setter>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsBusy}" Value="True">
                                             <Setter Property="Fill" Value="{StaticResource AccentGold}"/>
-                                            <DataTrigger.EnterActions>
-                                                <BeginStoryboard>
-                                                    <Storyboard RepeatBehavior="Forever">
-                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         From="0.4" To="1" Duration="0:0:0.6" AutoReverse="True"/>
-                                                    </Storyboard>
-                                                </BeginStoryboard>
-                                            </DataTrigger.EnterActions>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Ellipse.Style>
                         </Ellipse>
-                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" FontWeight="SemiBold"/>
+                        <TextBlock Text="" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding LastErrorMessage}" Style="{StaticResource CaptionTextStyle}" 
-                               Foreground="#FF6B6B" Margin="20,4,0,0"
-                               Visibility="{Binding LastErrorMessage, Converter={StaticResource BoolToVisibilityInverseConverter}}"/>
-                </StackPanel>
 
-                <!-- Action Buttons -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <!-- Capture Button (Primary) -->
-                    <Button Style="{StaticResource ActionButtonStyle}" 
-                            Command="{Binding CaptureCommand}" 
-                            Margin="0,0,10,0" Padding="20,10">
-                        <Button.Content>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="M12 15.2c1.4 0 2.6-1.2 2.6-2.6s-1.2-2.6-2.6-2.6-2.6 1.2-2.6 2.6 1.2 2.6 2.6 2.6zm9-8.2h-3.2l-1.5-1.5h-9l-1.5 1.5H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" 
-                                      Fill="#0A0406" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
-                                <TextBlock Text="CHỤP ẢNH"/>
-                            </StackPanel>
-                        </Button.Content>
-                    </Button>
-
-                    <!-- Clear -->
-                    <Button Style="{StaticResource ActionButtonStyle}" 
-                            Command="{Binding ClearHistoryCommand}" 
-                            Margin="0,0,10,0" Padding="14,10">
-                        <Button.Content>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" 
-                                      Fill="#0A0406" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
-                                <TextBlock Text="XÓA"/>
-                            </StackPanel>
-                        </Button.Content>
-                    </Button>
-
-                    <!-- End Session -->
-                    <Button Style="{StaticResource EndSessionButtonStyle}" 
-                            Command="{Binding EndSessionCommand}" 
-                            Padding="18,10">
-                        <Button.Content>
-                            <StackPanel Orientation="Horizontal">
-                                <Path Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" 
-                                      Fill="#FFFFFF" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"/>
-                                <TextBlock Text="KẾT THÚC"/>
-                            </StackPanel>
-                        </Button.Content>
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
+                    <UniformGrid Grid.Row="1" Columns="3" Margin="0,8,0,0">
+                        <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding ClearHistoryCommand}" Margin="4,0" Padding="8,10">
+                            <TextBlock Text="{Binding Loc[Delete]}" FontSize="12"/>
+                        </Button>
+                        <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding CaptureCommand}" Margin="4,0" Padding="8,10">
+                            <TextBlock Text="{Binding Loc[Capture]}" FontSize="12"/>
+                        </Button>
+                        <Button Style="{StaticResource EndSessionButtonStyle}" Command="{Binding EndSessionCommand}" Margin="4,0" Padding="8,10">
+                            <TextBlock Text="{Binding Loc[EndSession]}" FontSize="12"/>
+                        </Button>
+                    </UniformGrid>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- ==================== GLOBAL LOADING OVERLAY ==================== -->
-        <Grid Grid.RowSpan="3" Background="#E60A0406"
-              Visibility="Collapsed">
+        <Grid Background="#E60A0406" Visibility="Collapsed">
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Style.Triggers>
@@ -708,32 +671,17 @@
                     </Style.Triggers>
                 </Style>
             </Grid.Style>
-            <Grid.Triggers>
-                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                    <BeginStoryboard Storyboard="{StaticResource LoadingRotationStoryboard}"/>
-                </EventTrigger>
-            </Grid.Triggers>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Grid Width="120" Height="120" HorizontalAlignment="Center">
-                    <Ellipse Stroke="{StaticResource AccentGoldDark}" StrokeThickness="8" Opacity="0.3"/>
-                    <Ellipse x:Name="LoadingSpinner"
-                             Stroke="{StaticResource AccentGoldLight}"
-                             StrokeThickness="8"
-                             StrokeDashArray="1.5 1"
-                             StrokeStartLineCap="Round"
-                             StrokeEndLineCap="Round"
-                             RenderTransformOrigin="0.5,0.5">
-                        <Ellipse.RenderTransform>
-                            <RotateTransform Angle="0"/>
-                        </Ellipse.RenderTransform>
+                <Grid Width="100" Height="100" HorizontalAlignment="Center">
+                    <Ellipse Stroke="{StaticResource AccentGoldDark}" StrokeThickness="6" Opacity="0.3"/>
+                    <Ellipse x:Name="LoadingSpinner" Stroke="{StaticResource AccentGoldLight}" StrokeThickness="6" StrokeDashArray="1.5 1" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><RotateTransform Angle="0"/></Ellipse.RenderTransform>
                         <Ellipse.Effect>
-                            <DropShadowEffect Color="#FFD700" BlurRadius="20" ShadowDepth="0" Opacity="0.7"/>
+                            <DropShadowEffect Color="#FFD700" BlurRadius="15" ShadowDepth="0" Opacity="0.7"/>
                         </Ellipse.Effect>
                     </Ellipse>
                 </Grid>
-                <TextBlock Text="Đang xử lý ảnh..." FontSize="20" FontWeight="SemiBold" 
-                           Foreground="{StaticResource AccentGoldLight}" 
-                           HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                <TextBlock Text="{Binding Loc[LoadingTitle]}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource AccentGoldLight}" HorizontalAlignment="Center" Margin="0,16,0,0"/>
             </StackPanel>
         </Grid>
     </Grid>

@@ -227,6 +227,38 @@
                 <GroupBox Header="In ấn">
                     <CheckBox x:Name="AutoPrintCheckBox" Content="Tự động in ảnh sau khi xử lý" Foreground="{StaticResource TextPrimaryBrush}" />
                 </GroupBox>
+
+                <GroupBox Header="Giao diện">
+                    <StackPanel>
+                        <Label Content="Chọn chế độ hiển thị giao diện:" />
+                        <ComboBox x:Name="UiModeComboBox" Margin="0,6,0,0" Width="300" HorizontalAlignment="Left">
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="ComboBoxItem">
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                            <ComboBoxItem Content="Landscape (Ngang - 3 cột)" Tag="Landscape" />
+                            <ComboBoxItem Content="Portrait (Dọc - Stacked layout)" Tag="Portrait" />
+                        </ComboBox>
+                        <TextBlock Text="Landscape: Camera + Preview + Filters ngang. Portrait: Camera trên, Preview dưới." Foreground="#888" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox x:Name="LanguageGroupBox" Header="Ngôn ngữ">
+                    <StackPanel>
+                        <Label x:Name="LanguageLabel" Content="Chọn ngôn ngữ:" />
+                        <ComboBox x:Name="LanguageComboBox" Margin="0,6,0,0" Width="300" HorizontalAlignment="Left">
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="ComboBoxItem">
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                            <ComboBoxItem x:Name="VietnameseItem" Content="Tiếng Việt" Tag="Vietnamese" />
+                            <ComboBoxItem x:Name="EnglishItem" Content="English" Tag="English" />
+                        </ComboBox>
+                        <TextBlock x:Name="LanguageNoteText" Text="Thay đổi ngôn ngữ sẽ áp dụng ngay lập tức." Foreground="#888" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </GroupBox>
             </StackPanel>
         </ScrollViewer>
 

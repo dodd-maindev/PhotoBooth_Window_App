@@ -16,12 +16,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>asset\Logo\joli-film-logo.ico</ApplicationIcon>
-    <!-- Single-file publish settings (applied via dotnet publish -p:PublishSingleFile=true) -->
+    <!-- Single-file publish settings -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- Optimization -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,9 +35,10 @@
     </Content>
     <Resource Include="asset\Logo\joli-film-logo.png" />
     <Resource Include="asset\Logo\joli-film-logo.ico" />
+    <Resource Include="asset\Right_Icon\Right_Icon.png" />
   </ItemGroup>
 
-  <!-- Embedded Python service executable (created by build_service.ps1) -->
+  <!-- Embedded Python service executable -->
   <ItemGroup>
     <EmbeddedResource Include="Resources\python_service.exe"
                       Condition="Exists('Resources\python_service.exe')" />

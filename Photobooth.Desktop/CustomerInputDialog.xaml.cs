@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using Photobooth.Desktop.Models;
+using Photobooth.Desktop.Services;
 
 namespace Photobooth.Desktop;
 
@@ -8,12 +9,29 @@ public partial class CustomerInputDialog : Window
 {
     public string? CustomerName { get; private set; }
     public AppSettings Settings { get; private set; }
+    private readonly LocalizationService _loc = LocalizationService.Instance;
 
     public CustomerInputDialog()
     {
         InitializeComponent();
         Settings = AppSettings.Load(AppContext.BaseDirectory);
+
+        // Apply language setting
+        _loc.CurrentLanguage = Settings.Language;
+        ApplyLocalization();
+
         CustomerNameTextBox.Focus();
+    }
+
+    private void ApplyLocalization()
+    {
+        AddressText.Text = _loc["Address"];
+        WelcomeTitleText.Text = _loc["WELCOME TO JOLI FILMTitle"];
+        WelcomeSubtitleText.Text = _loc["WELCOME TO JOLI FILMSubtitle"];
+        NameLabelText.Text = _loc["EnterNameTitle"];
+        CustomerNameTextBox.Text = "";
+        StartButtonText.Text = _loc["Continue"];
+        SettingsButtonText.Text = _loc["Settings"];
     }
 
     private void StartButton_Click(object sender, RoutedEventArgs e)
@@ -23,8 +41,8 @@ public partial class CustomerInputDialog : Window
         if (string.IsNullOrWhiteSpace(name))
         {
             MessageBox.Show(
-                "Vui lòng nhập tên khách hàng.",
-                "Thông báo",
+                _loc["EnterNameTitle"],
+                _loc["AppTitle"],
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             CustomerNameTextBox.Focus();
@@ -46,6 +64,8 @@ public partial class CustomerInputDialog : Window
         if (dialog.SettingsSaved)
         {
             Settings = AppSettings.Load(AppContext.BaseDirectory);
+            _loc.CurrentLanguage = Settings.Language;
+            ApplyLocalization();
         }
     }
 
