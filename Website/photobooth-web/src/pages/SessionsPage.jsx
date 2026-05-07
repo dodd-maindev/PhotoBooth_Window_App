@@ -87,6 +87,7 @@ export default function SessionsPage() {
   const [error, setError] = useState(null)
   const [downloading, setDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(null)
+  const [isFallback, setIsFallback] = useState(false) // Track if using fallback (local) instead of real client
   
   // Track current request with ref (sync update, won't cause stale closure)
   const currentRequestRef = useRef(0)
@@ -193,6 +194,7 @@ export default function SessionsPage() {
       if (requestId !== currentRequestRef.current) return
       
       setFolderTree(response.data)
+      setIsFallback(response.data?.fallback === true)
       if (response.data?.path) {
         setSelectedPath(response.data.path)
       }
@@ -373,6 +375,13 @@ export default function SessionsPage() {
             <div className="error-message">
               <span className="error-icon">⚠</span>
               {error}
+            </div>
+          )}
+
+          {isFallback && (
+            <div className="warning-message">
+              <span className="warning-icon">⚡</span>
+              Client offline - showing local server folder (for testing)
             </div>
           )}
 

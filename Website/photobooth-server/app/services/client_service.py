@@ -109,6 +109,19 @@ class ClientService:
                 return True
         
         return False
+    
+    def update_client_ip(self, client_id: str, ip_address: str) -> Optional[Client]:
+        """Update client IP address"""
+        clients = self._load_clients()
+        
+        for i, c in enumerate(clients):
+            if c.id == client_id:
+                clients[i].ip_address = ip_address
+                clients[i].base_url = f"http://{ip_address}:{c.port}"
+                self._save_clients(clients)
+                return clients[i]
+        
+        return None
 
 
 client_service = ClientService()

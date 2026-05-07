@@ -1235,6 +1235,23 @@ td.mono {
   margin-bottom: var(--spacing-md);
 }
 
+.warning-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: rgba(230, 126, 34, 0.1);
+  border: 1px solid rgba(230, 126, 34, 0.3);
+  border-radius: var(--rounded-md);
+  color: #d35400;
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.warning-icon, .error-icon {
+  font-size: 1.1rem;
+}
+
 .error-icon {
   font-size: 1.1rem;
 }

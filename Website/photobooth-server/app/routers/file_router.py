@@ -18,8 +18,7 @@ def get_client_url(client_id: str) -> str:
     client = client_service.get_client(client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    if client.status.value != "online":
-        raise HTTPException(status_code=503, detail="Client is offline")
+    # Return base_url even if offline - will be handled by file_service
     return client.base_url
 
 
@@ -31,9 +30,29 @@ async def get_client_folder_tree(
 ):
     """
     Get folder tree structure from a specific client machine
+    Falls back to local folder if client is offline (for testing)
     """
-    client_base_url = get_client_url(client_id)
-    return await file_service.get_folder_tree(client_base_url, path)
+    client = client_service.get_client(client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    # Try to get from client first
+    try:
+        from app.services.file_service import file_service
+        tree = await file_service.get_folder_tree(client.base_url, path or file_service.DEFAULT_SESSIONS_PATH)
+        tree["source"] = "client"
+        tree["client_name"] = client.name
+        return tree
+    except HTTPException:
+        raise  # Re-raise 404/503
+    except Exception as e:
+        # Client unreachable - fallback to local for testing
+        local_path = path or file_service.DEFAULT_SESSIONS_PATH
+        tree = file_service.build_local_tree(local_path)
+        tree["source"] = "local"
+        tree["client_name"] = client.name
+        tree["fallback"] = True
+        return tree
 
 
 @router.get("/clients/{client_id}/contents")

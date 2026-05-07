@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List
 
 from app.models import Client, ClientRegister, ClientStatusUpdate, ClientStatus
@@ -8,10 +8,19 @@ from app.routers.auth_router import get_current_user
 router = APIRouter(prefix="/api/clients", tags=["Clients"])
 
 
+def get_client_ip(request: Request) -> str:
+    """Extract real client IP from request headers"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+
 @router.post("/register", response_model=Client)
-async def register_client(client_data: ClientRegister, ip_address: str = "127.0.0.1"):
+async def register_client(client_data: ClientRegister, request: Request):
     """Register a new client (photobooth machine)"""
-    return client_service.register_client(client_data, ip_address)
+    real_ip = get_client_ip(request)
+    return client_service.register_client(client_data, real_ip)
 
 
 @router.get("", response_model=List[Client])
@@ -42,8 +51,11 @@ async def update_client_status(client_id: str, data: ClientStatusUpdate, current
 
 
 @router.post("/{client_id}/heartbeat", response_model=Client)
-async def client_heartbeat(client_id: str):
+async def client_heartbeat(client_id: str, request: Request):
     """Client heartbeat to indicate it's still online"""
+    # Update IP on heartbeat in case it changed
+    real_ip = get_client_ip(request)
+    client_service.update_client_ip(client_id, real_ip)
     return client_service.heartbeat(client_id)
 
 
