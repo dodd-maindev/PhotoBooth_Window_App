@@ -79,6 +79,18 @@ public sealed class AppSettings
     public UiMode UiMode { get; set; } = UiMode.Landscape;
 
     /// <summary>
+    /// Camera live preview brightness factor (0.0 to 1.0).
+    /// Default: 0.65 (65% brightness)
+    /// </summary>
+    public double CameraBrightness { get; set; } = 0.65;
+
+    /// <summary>
+    /// Camera live preview contrast factor (>= 1.0).
+    /// Default: 1.4 (40% contrast increase)
+    /// </summary>
+    public double CameraContrast { get; set; } = 1.4;
+
+    /// <summary>
     /// Application language: Vietnamese (0) or English (1).
     /// </summary>
     public AppLanguage Language { get; set; } = AppLanguage.Vietnamese;
@@ -144,6 +156,8 @@ public sealed class AppSettings
         PreferredCameraName = other.PreferredCameraName;
         CameraDeviceIndex = other.CameraDeviceIndex;
         UiMode = other.UiMode;
+        CameraBrightness = other.CameraBrightness;
+        CameraContrast = other.CameraContrast;
         Language = other.Language;
         EnableFullScreen = other.EnableFullScreen;
     }

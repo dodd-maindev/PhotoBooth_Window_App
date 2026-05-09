@@ -19,6 +19,7 @@ def get_client_ip(request: Request) -> str:
 @router.post("/register", response_model=Client)
 async def register_client(client_data: ClientRegister, request: Request):
     """Register a new client (photobooth machine)"""
+    # Client gửi IP thật của mình trong payload
     real_ip = get_client_ip(request)
     return client_service.register_client(client_data, real_ip)
 

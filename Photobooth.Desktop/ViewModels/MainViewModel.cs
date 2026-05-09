@@ -4,6 +4,7 @@ using System.Threading.Channels;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Photobooth.Desktop.Models;
 using Photobooth.Desktop.Services;
 using Photobooth.Desktop.Services.Camera;
@@ -282,10 +283,103 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     {
         Application.Current.Dispatcher.InvokeAsync(() =>
         {
-            CurrentCameraImage = frame;
+            // Apply darkening effect to live camera preview ONLY
+            CurrentCameraImage = ApplyDarkeningEffect(frame);
             CameraStatusMessage = _cameraService.LastStatusMessage;
             RefreshCaptureCommandState();
         });
+    }
+
+    /// <summary>
+    /// Applies a darkening effect with contrast enhancement to the camera frame using WPF pixel manipulation.
+    /// This only affects the live preview - captured/processed images are not modified.
+    /// Uses settings from AppSettings: CameraBrightness and CameraContrast.
+    /// </summary>
+
+    private ImageSource ApplyDarkeningEffect(ImageSource source)
+    {
+        double brightness = _settings.CameraBrightness;
+        double contrast = _settings.CameraContrast;
+
+        // Skip processing if values are at default (no change needed)
+        if (brightness >= 0.99 && Math.Abs(contrast - 1.0) < 0.01)
+        {
+            return source;
+        }
+
+        try
+        {
+            // Try to get BitmapSource for pixel manipulation
+            if (source is BitmapSource bitmap)
+            {
+                return DarkenBitmapSource(bitmap, brightness, contrast);
+            }
+            else if (source is WriteableBitmap writable)
+            {
+                return DarkenWriteableBitmap(writable, brightness, contrast);
+            }
+        }
+        catch
+        {
+            // If any error occurs, return original frame
+        }
+        return source;
+    }
+
+    private BitmapSource DarkenBitmapSource(BitmapSource source, double brightness, double contrast)
+    {
+        // Convert to 32-bit BGRA format for pixel manipulation
+        var formatConverted = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+
+        int width = formatConverted.PixelWidth;
+        int height = formatConverted.PixelHeight;
+        int stride = width * 4;
+        byte[] pixels = new byte[height * stride];
+
+        formatConverted.CopyPixels(pixels, stride, 0);
+
+        // Apply brightness reduction AND contrast enhancement to each pixel
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            // Apply contrast first: ((value/255 - 0.5) * factor + 0.5) * 255
+            // Then apply brightness reduction
+            pixels[i] = ClampToByte(((pixels[i] / 255.0 - 0.5) * contrast + 0.5) * 255 * brightness);
+            pixels[i + 1] = ClampToByte(((pixels[i + 1] / 255.0 - 0.5) * contrast + 0.5) * 255 * brightness);
+            pixels[i + 2] = ClampToByte(((pixels[i + 2] / 255.0 - 0.5) * contrast + 0.5) * 255 * brightness);
+            // Alpha channel - keep original
+        }
+
+        var result = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        result.Freeze();
+        return result;
+    }
+
+    private BitmapSource DarkenWriteableBitmap(WriteableBitmap source, double brightness, double contrast)
+    {
+        int width = source.PixelWidth;
+        int height = source.PixelHeight;
+        int stride = width * 4;
+        byte[] pixels = new byte[height * stride];
+
+        // Copy current pixels
+        source.CopyPixels(pixels, stride, 0);
+
+        // Apply brightness reduction AND contrast enhancement
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            pixels[i] = ClampToByte(((pixels[i] / 255.0 - 0.5) * contrast + 0.5) * 255 * brightness);
+            pixels[i + 1] = ClampToByte(((pixels[i + 1] / 255.0 - 0.5) * contrast + 0.5) * 255 * brightness);
+            pixels[i + 2] = ClampToByte(((pixels[i + 2] / 255.0 - 0.5) * contrast + 0.5) * 255 * brightness);
+        }
+
+        var result = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        result.Freeze();
+        return result;
+    }
+
+    private static byte ClampToByte(double value)
+    {
+        return (byte)Math.Max(0, Math.Min(255, value));
     }
 
     private async Task HandlePhotoReadyAsync(CameraPhotoReadyEventArgs args)

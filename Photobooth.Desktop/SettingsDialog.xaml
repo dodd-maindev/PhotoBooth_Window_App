@@ -260,6 +260,69 @@
                         <TextBlock x:Name="LanguageNoteText" Text="Thay đổi ngôn ngữ sẽ áp dụng ngay lập tức." Foreground="#888" FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap" />
                     </StackPanel>
                 </GroupBox>
+
+                <GroupBox Header="Camera Live Preview - Độ sáng &amp; Tương phản">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="220" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: Preview -->
+                        <Border Grid.Column="0" Background="#050203" CornerRadius="6" BorderBrush="#7A4730" BorderThickness="1" Margin="0,0,12,0" MinHeight="180">
+                            <Grid>
+                                <Image x:Name="CameraPreviewImage" Stretch="Uniform" SnapsToDevicePixels="True" />
+                                <TextBlock x:Name="NoCameraText" Text="Đang kết nối camera..." 
+                                           Foreground="#888" FontSize="12" 
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Right: Sliders -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Độ sáng" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="40" />
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="BrightnessSlider" 
+                                        Minimum="0.1" Maximum="1.0" 
+                                        Value="0.35" 
+                                        TickFrequency="0.05" 
+                                        IsSnapToTickEnabled="True"
+                                        ValueChanged="BrightnessSlider_ValueChanged" />
+                                <TextBlock Grid.Column="1" x:Name="BrightnessValueText" Text="65%" 
+                                           Foreground="{StaticResource AccentBrush}" 
+                                           FontSize="12" VerticalAlignment="Center" 
+                                           HorizontalAlignment="Right" Margin="6,0,0,0" />
+                            </Grid>
+
+                            <TextBlock Text="Tương phản" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,16,0,6" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="40" />
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="ContrastSlider" 
+                                        Minimum="1.0" Maximum="2.0" 
+                                        Value="2.5" 
+                                        TickFrequency="0.1" 
+                                        IsSnapToTickEnabled="True"
+                                        ValueChanged="ContrastSlider_ValueChanged" />
+                                <TextBlock Grid.Column="1" x:Name="ContrastValueText" Text="1.4x" 
+                                           Foreground="{StaticResource AccentBrush}" 
+                                           FontSize="12" VerticalAlignment="Center" 
+                                           HorizontalAlignment="Right" Margin="6,0,0,0" />
+                            </Grid>
+
+                            <Button x:Name="ResetCameraSettingsButton" Content="Đặt lại mặc định" 
+                                    Style="{StaticResource SecondaryButtonStyle}" 
+                                    Margin="0,20,0,0" Padding="12,8"
+                                    Click="ResetCameraSettings_Click" />
+                        </StackPanel>
+                    </Grid>
+                </GroupBox>
             </StackPanel>
         </ScrollViewer>
 

@@ -1,18 +1,162 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using OpenCvSharp;
 using Photobooth.Desktop.Models;
+using System.Runtime.InteropServices;
 
 namespace Photobooth.Desktop;
 
-public partial class SettingsDialog : Window
+public partial class SettingsDialog : System.Windows.Window
 {
     private readonly AppSettings _settings;
+    private VideoCapture? _capture;
+    private DispatcherTimer? _previewTimer;
+    private bool _isClosing;
 
     public SettingsDialog(AppSettings settings)
     {
         InitializeComponent();
         _settings = settings;
         LoadSettings();
+        StartCameraPreview();
+    }
+
+    private void StartCameraPreview()
+    {
+        // Try to find available webcam
+        int deviceIndex = FindAvailableWebcam();
+        if (deviceIndex < 0)
+        {
+            NoCameraText.Text = "Không tìm thấy camera";
+            return;
+        }
+
+        try
+        {
+            _capture = new VideoCapture(deviceIndex);
+            if (!_capture.IsOpened())
+            {
+                _capture.Dispose();
+                NoCameraText.Text = "Không thể mở camera";
+                return;
+            }
+
+            _previewTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _previewTimer.Tick += PreviewTimer_Tick;
+            _previewTimer.Start();
+            NoCameraText.Visibility = Visibility.Collapsed;
+        }
+        catch
+        {
+            NoCameraText.Text = "Lỗi kết nối camera";
+        }
+    }
+
+    private int FindAvailableWebcam()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            try
+            {
+                using var test = new VideoCapture(i);
+                if (test.IsOpened())
+                {
+                    test.Dispose();
+                    return i;
+                }
+                test.Dispose();
+            }
+            catch { }
+        }
+        return -1;
+    }
+
+    private void PreviewTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_capture == null || !_capture.IsOpened() || _isClosing) return;
+
+        try
+        {
+            using var frame = new Mat();
+            if (!_capture.Read(frame) || frame.Empty()) return;
+
+            // Flip horizontally (mirror)
+            Cv2.Flip(frame, frame, FlipMode.Y);
+
+            // Apply current brightness and contrast settings
+            var processedFrame = ApplyCameraEffect(frame);
+
+            // Convert to BitmapSource
+            CameraPreviewImage.Source = MatToBitmapSource(processedFrame);
+            processedFrame.Dispose();
+        }
+        catch
+        {
+            // Ignore frame errors
+        }
+    }
+
+    private Mat ApplyCameraEffect(Mat input)
+    {
+        double brightness = BrightnessSlider.Value;
+        double contrast = ContrastSlider.Value;
+
+        if (brightness >= 0.95 && Math.Abs(contrast - 1.0) < 0.05)
+        {
+            return input.Clone();
+        }
+
+        var result = input.Clone();
+
+        // Apply contrast first
+        if (Math.Abs(contrast - 1.0) >= 0.05)
+        {
+            result.ConvertTo(result, -1, contrast, 0);
+        }
+
+        // Apply brightness
+        if (brightness < 0.95)
+        {
+            result.ConvertTo(result, -1, 1, (brightness - 1.0) * 255);
+        }
+
+        return result;
+    }
+
+    private BitmapSource MatToBitmapSource(Mat mat)
+    {
+        int width = mat.Width;
+        int height = mat.Height;
+        int stride = width * 3; // BGR24 = 3 bytes per pixel
+        byte[] pixels = new byte[height * stride];
+
+        Marshal.Copy(mat.Data, pixels, 0, pixels.Length);
+
+        // Convert BGR to RGB
+        var rgbPixels = new byte[height * width * 4];
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int bgrIndex = y * stride + x * 3;
+                int rgbaIndex = y * width * 4 + x * 4;
+
+                rgbPixels[rgbaIndex] = pixels[bgrIndex + 2];     // R
+                rgbPixels[rgbaIndex + 1] = pixels[bgrIndex + 1]; // G
+                rgbPixels[rgbaIndex + 2] = pixels[bgrIndex];     // B
+                rgbPixels[rgbaIndex + 3] = 255;                 // A
+            }
+        }
+
+        var result = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, rgbPixels, width * 4);
+        result.Freeze();
+        return result;
     }
 
     private void LoadSettings()
@@ -46,6 +190,12 @@ public partial class SettingsDialog : Window
         // Load FullScreen
         FullScreenCheckBox.IsChecked = _settings.EnableFullScreen;
 
+        // Load Camera Brightness & Contrast
+        BrightnessSlider.Value = _settings.CameraBrightness;
+        ContrastSlider.Value = _settings.CameraContrast;
+        UpdateBrightnessDisplay();
+        UpdateContrastDisplay();
+
         UpdateFieldsVisibility();
     }
 
@@ -59,6 +209,34 @@ public partial class SettingsDialog : Window
         var isFuji = GetSelectedCameraType() == CameraType.Fuji;
         var guideWindow = new GuideDialog(isFuji) { Owner = this };
         guideWindow.ShowDialog();
+    }
+
+    private void BrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (BrightnessValueText == null) return;
+        UpdateBrightnessDisplay();
+    }
+
+    private void ContrastSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ContrastValueText == null) return;
+        UpdateContrastDisplay();
+    }
+
+    private void ResetCameraSettings_Click(object sender, RoutedEventArgs e)
+    {
+        BrightnessSlider.Value = 0.65;
+        ContrastSlider.Value = 1.4;
+    }
+
+    private void UpdateBrightnessDisplay()
+    {
+        BrightnessValueText.Text = $"{(int)(BrightnessSlider.Value * 100)}%";
+    }
+
+    private void UpdateContrastDisplay()
+    {
+        ContrastValueText.Text = $"{ContrastSlider.Value:F1}x";
     }
 
     private void UpdateFieldsVisibility()
@@ -160,6 +338,10 @@ public partial class SettingsDialog : Window
         // Save FullScreen
         _settings.EnableFullScreen = FullScreenCheckBox.IsChecked == true;
 
+        // Save Camera Brightness & Contrast
+        _settings.CameraBrightness = BrightnessSlider.Value;
+        _settings.CameraContrast = ContrastSlider.Value;
+
         try
         {
             _settings.Save(AppContext.BaseDirectory);
@@ -177,5 +359,13 @@ public partial class SettingsDialog : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        _isClosing = true;
+        _previewTimer?.Stop();
+        _capture?.Dispose();
+        base.OnClosing(e);
     }
 }

@@ -74,6 +74,7 @@ class ClientRegister(BaseModel):
     name: str
     machine_type: str
     port: int = 5050
+    ip_address: Optional[str] = None  # Client tự gửi IP của mình
 
 
 class ClientStatusUpdate(BaseModel):

@@ -34,14 +34,17 @@ class ClientService:
     def register_client(self, data: ClientRegister, ip_address: str) -> Client:
         clients = self._load_clients()
         
+        # Ưu tiên IP từ payload (client gửi), không dùng IP kết nối TCP
+        final_ip = data.ip_address if data.ip_address else ip_address
+        
         existing = [c for c in clients if c.id == data.client_id]
         if existing:
             for i, c in enumerate(clients):
                 if c.id == data.client_id:
                     clients[i].status = ClientStatus.ONLINE
                     clients[i].last_seen = datetime.now()
-                    clients[i].ip_address = ip_address
-                    clients[i].base_url = f"http://{ip_address}:{data.port}"
+                    clients[i].ip_address = final_ip
+                    clients[i].base_url = f"http://{final_ip}:{data.port}"
                     self._save_clients(clients)
                     return clients[i]
         
@@ -49,11 +52,11 @@ class ClientService:
             id=data.client_id,
             name=data.name,
             machine_type=data.machine_type,
-            ip_address=ip_address,
+            ip_address=final_ip,
             port=data.port,
             status=ClientStatus.ONLINE,
             last_seen=datetime.now(),
-            base_url=f"http://{ip_address}:{data.port}"
+            base_url=f"http://{final_ip}:{data.port}"
         )
         
         clients.append(client)

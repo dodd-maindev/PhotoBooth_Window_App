@@ -188,6 +188,7 @@ public sealed class OpenCvCameraService : ICameraService
     /// <summary>
     /// Applies 1080p @ 60 fps settings using MJPG codec (required by most
     /// webcams to unlock high-fps modes; raw YUY2 is typically limited to 30 fps).
+    /// Also disables auto-exposure and sets manual exposure/brightness to reduce glare.
     /// </summary>
     private static void ApplyCameraSettings(VideoCapture capture)
     {
@@ -197,33 +198,66 @@ public sealed class OpenCvCameraService : ICameraService
         capture.Set(VideoCaptureProperties.FrameHeight, TargetHeight);
         capture.Set(VideoCaptureProperties.Fps, TargetFps);
 
-        // Disable auto-exposure lag (DirectShow cameras).
-        capture.Set(VideoCaptureProperties.AutoExposure, 0.25);
+        // --- Disable auto-exposure at hardware level ---
+        // 0.0 = manual exposure mode on most DirectShow cameras
+        // 2.0 = manual mode on some cameras, -1 = powered off
+        capture.Set(VideoCaptureProperties.AutoExposure, 0.0);
+
+        // --- Set manual exposure to minimum (darkest) ---
+        // OpenCV exposure scale is typically 1-5000 for logarithmic scale
+        // Lower value = less exposure = darker
+        capture.Set(VideoCaptureProperties.Exposure, 2);
+
+        // --- Reduce brightness at hardware level ---
+        // Lower values = darker, typical range 0-255
+        capture.Set(VideoCaptureProperties.Brightness, 10);
+
+        // --- Minimize gain (causes noise when high) ---
+        capture.Set(VideoCaptureProperties.Gain, 0);
+
+        // --- Reduce contrast to help with glare ---
+        capture.Set(VideoCaptureProperties.Contrast, 64);
+
+        // --- Reduce saturation ---
+        capture.Set(VideoCaptureProperties.Saturation, 50);
 
         // Minimise internal driver buffer — reduces latency at cost of 1 frame.
         capture.Set(VideoCaptureProperties.BufferSize, 1);
     }
 
-    /// <summary>Logs the actual resolution and FPS negotiated by the driver.</summary>
+    /// <summary>Logs the actual resolution, FPS, and camera control values.</summary>
     private async Task LogActualCameraSettings(VideoCapture capture)
     {
         var actualWidth = capture.Get(VideoCaptureProperties.FrameWidth);
         var actualHeight = capture.Get(VideoCaptureProperties.FrameHeight);
         var actualFps = capture.Get(VideoCaptureProperties.Fps);
+        var actualExposure = capture.Get(VideoCaptureProperties.Exposure);
+        var actualBrightness = capture.Get(VideoCaptureProperties.Brightness);
+        var actualGain = capture.Get(VideoCaptureProperties.Gain);
         await _logger.InfoAsync(
-            $"[OpenCv] Actual camera settings: {actualWidth}x{actualHeight} @ {actualFps} fps")
+            $"[OpenCv] Actual camera: {actualWidth}x{actualHeight} @ {actualFps} fps | Exposure={actualExposure} Brightness={actualBrightness} Gain={actualGain}")
             .ConfigureAwait(false);
     }
 
     // ── Private: Capture loop ──────────────────────────────────────────────
     /// <summary>
-    /// Hot-loop running on a dedicated thread.  Reads frames from the driver
+    /// Hot-loop running on a dedicated thread. Reads frames from the driver
     /// and dispatches them to the UI at the target frame rate.
+    /// Applies strong brightness reduction and edge-preserving smoothing
+    /// to eliminate glare/hot-spots from LED ring lights.
     /// </summary>
     private void CaptureLoop(CancellationToken ct)
     {
         using var frame = new Mat();
-        using var rgbFrame = new Mat();
+        using var bgrFrame = new Mat();
+
+        // Brightness factor: 0.08 = reduce to 8% brightness (very dark)
+        // Adjust this value (0.05 to 0.3) to get desired darkness
+        const float BrightnessFactor = 0.08f;
+
+        // Gamma value: 2.5 = darkens shadows more than highlights
+        // Adjust (1.5 to 4.0) to control shadow darkness
+        const double Gamma = 2.5;
 
         while (!ct.IsCancellationRequested && _isCapturing)
         {
@@ -239,14 +273,43 @@ public sealed class OpenCvCameraService : ICameraService
 
                 if (_isStopping) break;
 
-                // Throttle UI dispatches to TargetFps; frames in-between are
-                // still read from the driver to keep its internal queue empty.
+                // Throttle UI dispatches
                 var nowTicks = DateTime.UtcNow.Ticks;
                 if (nowTicks - Interlocked.Read(ref _lastDispatchedTicksUtc) < DispatchIntervalTicks)
                     continue;
 
-                Cv2.CvtColor(frame, rgbFrame, ColorConversionCodes.BGR2BGRA);
-                DispatchFrame(rgbFrame, nowTicks);
+                // Convert to BGR first
+                Cv2.CvtColor(frame, bgrFrame, ColorConversionCodes.BGRA2BGR);
+
+                // Step 1: Apply gamma correction FIRST (darkens shadows more than highlights)
+                // This makes the dark areas darker while preserving some mid-tones
+                ApplyGammaCorrection(bgrFrame, Gamma);
+
+                // Get raw pixel data after gamma
+                var pixelData = new byte[bgrFrame.Width * bgrFrame.Height * 3];
+                Marshal.Copy(bgrFrame.Data, pixelData, 0, pixelData.Length);
+
+                // Step 2: Direct pixel manipulation - multiply by brightness factor
+                // This reduces ALL pixel values uniformly
+                for (int i = 0; i < pixelData.Length; i++)
+                {
+                    pixelData[i] = (byte)(pixelData[i] * BrightnessFactor);
+                }
+
+                // Create darkened Mat from modified pixels
+                using var darkenedMat = new Mat(bgrFrame.Height, bgrFrame.Width, MatType.CV_8UC3);
+                Marshal.Copy(pixelData, 0, darkenedMat.Data, pixelData.Length);
+
+                // Step 3: Apply bilateral filter to reduce noise while keeping edges
+                // This smooths flat areas (removes grain from darkening) without blurring edges
+                using var smoothed = new Mat();
+                Cv2.BilateralFilter(darkenedMat, smoothed, 9, 75, 75);
+
+                // Step 4: Convert to BGRA for display
+                using var bgraResult = new Mat();
+                Cv2.CvtColor(smoothed, bgraResult, ColorConversionCodes.BGR2BGRA);
+
+                DispatchFrame(bgraResult, nowTicks);
             }
             catch (AccessViolationException ex)
             {
@@ -340,5 +403,76 @@ public sealed class OpenCvCameraService : ICameraService
             _latestFrame = null;
             _lastFrameReceivedAtUtc = null;
         }
+    }
+
+    /// <summary>
+    /// Applies gamma correction (darkens shadows more than highlights) to a BGR Mat.
+    /// gamma > 1: darkens image, gamma &lt; 1: brightens image.
+    /// Uses HSV conversion for better control over brightness.
+    /// </summary>
+    private static void ApplyGammaCorrection(Mat bgrFrame, double gamma)
+    {
+        // Convert BGR to HSV (Hue, Saturation, Value)
+        using var hsv = new Mat();
+        Cv2.CvtColor(bgrFrame, hsv, ColorConversionCodes.BGR2HSV);
+
+        // Split channels into separate Mats
+        using var hChannel = new Mat();
+        using var sChannel = new Mat();
+        using var vChannel = new Mat();
+        Cv2.Split(hsv, out var hsvChannels);
+
+        // Apply gamma to V channel (brightness)
+        // V_new = 255 * (V_old / 255) ^ gamma
+        var vData = new byte[hsvChannels[2].Width * hsvChannels[2].Height];
+        Marshal.Copy(hsvChannels[2].Data, vData, 0, vData.Length);
+        for (int i = 0; i < vData.Length; i++)
+        {
+            vData[i] = (byte)(Math.Pow(vData[i] / 255.0, gamma) * 255.0);
+        }
+        Marshal.Copy(vData, 0, hsvChannels[2].Data, vData.Length);
+
+        // Merge channels back
+        Cv2.Merge(hsvChannels, hsv);
+
+        // Convert back to BGR
+        Cv2.CvtColor(hsv, bgrFrame, ColorConversionCodes.HSV2BGR);
+    }
+
+    /// <summary>
+    /// Builds a gamma correction lookup table for a single channel.
+    /// gamma > 1: darkens, gamma &lt; 1: brightens.
+    /// </summary>
+    private static byte[] BuildGammaLutTable(double gamma)
+    {
+        var lut = new byte[256];
+        for (var i = 0; i < 256; i++)
+        {
+            var val = Math.Pow(i / 255.0, gamma) * 255.0;
+            lut[i] = (byte)Math.Clamp(val, 0, 255);
+        }
+        return lut;
+    }
+
+    /// <summary>
+    /// Applies gamma correction using lookup table to each BGR channel.
+    /// gamma > 1: darkens image, gamma &lt; 1: brightens image.
+    /// </summary>
+    private static void ApplyGammaLutBgr(Mat bgrFrame, byte[] lut)
+    {
+        Cv2.Split(bgrFrame, out var channels);
+
+        for (int c = 0; c < 3; c++)
+        {
+            var data = new byte[channels[c].Width * channels[c].Height];
+            Marshal.Copy(channels[c].Data, data, 0, data.Length);
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = lut[data[i]];
+            }
+            Marshal.Copy(data, 0, channels[c].Data, data.Length);
+        }
+
+        Cv2.Merge(channels, bgrFrame);
     }
 }
