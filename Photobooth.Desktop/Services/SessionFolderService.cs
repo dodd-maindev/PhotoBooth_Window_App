@@ -1,4 +1,5 @@
 using System.IO;
+using OpenCvSharp;
 
 namespace Photobooth.Desktop.Services;
 
@@ -58,9 +59,54 @@ public class SessionFolderService
         var fileName = $"photobooth_{_photoCounter}{System.IO.Path.GetExtension(sourceImagePath)}";
         var destPath = System.IO.Path.Combine(_currentOriginalFolder, fileName);
 
-        System.IO.File.Copy(sourceImagePath, destPath, overwrite: true);
+        // Flip image horizontally to match the mirrored preview
+        FlipAndSaveImage(sourceImagePath, destPath);
+
         System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] Saved original to: {destPath}{Environment.NewLine}");
         return destPath;
+    }
+
+    private void FlipAndSaveImage(string sourcePath, string destPath)
+    {
+        try
+        {
+            using var img = Cv2.ImRead(sourcePath, ImreadModes.Unchanged);
+            if (img.Empty())
+            {
+                // Fallback: just copy
+                System.IO.File.Copy(sourcePath, destPath, overwrite: true);
+                return;
+            }
+
+            // Flip horizontally (mirror) to match preview
+            using var flipped = new Mat();
+            Cv2.Flip(img, flipped, FlipMode.Y);
+
+            // Determine format and save
+            var ext = Path.GetExtension(destPath).ToLowerInvariant();
+            var encoding = ext switch
+            {
+                ".png" => ".png",
+                ".jpg" or ".jpeg" => ".jpg",
+                ".bmp" => ".bmp",
+                _ => ".png"
+            };
+
+            var finalPath = Path.ChangeExtension(destPath, encoding);
+            var success = Cv2.ImWrite(finalPath, flipped);
+
+            if (!success)
+            {
+                System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] ImWrite failed for {sourcePath}, fallback to copy{Environment.NewLine}");
+                System.IO.File.Copy(sourcePath, destPath, overwrite: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.IO.File.AppendAllText(@"C:\photobooth\debug.log", $"[{DateTime.Now:HH:mm:ss}] FlipAndSaveImage error: {ex.Message}{Environment.NewLine}");
+            // Fallback: just copy
+            System.IO.File.Copy(sourcePath, destPath, overwrite: true);
+        }
     }
 
     public void SetCurrentFilter(string filterName)
@@ -88,7 +134,9 @@ public class SessionFolderService
         var fileName = $"photobooth_{_photoCounter}{Path.GetExtension(sourceImagePath)}";
         var destPath = Path.Combine(filterFolder, fileName);
 
-        File.Copy(sourceImagePath, destPath, overwrite: true);
+        // Flip image horizontally to match preview
+        FlipAndSaveImage(sourceImagePath, destPath);
+
         return destPath;
     }
 
